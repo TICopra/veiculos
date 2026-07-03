@@ -1,0 +1,1582 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registro de Veículos</title>
+<style>
+  :root{
+    --asphalt:#20252B;
+    --asphalt-light:#2B323A;
+    --cloud:#F3F5F6;
+    --card:#FFFFFF;
+    --slate:#2B333B;
+    --slate-soft:#727C87;
+    --border:#E2E6E9;
+    --mercosul-blue:#1B3F8B;
+    --signal-green:#2E9A5A;
+    --signal-green-bg:#E7F5EC;
+    --signal-amber:#C98A1E;
+    --signal-amber-bg:#FBF0DC;
+    --signal-red:#C6423F;
+    --signal-red-bg:#FBEAE9;
+    --radius:14px;
+    --font-ui: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --font-mono:"Courier New",Courier,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:var(--font-ui);
+    background:var(--cloud);
+    color:var(--slate);
+    -webkit-tap-highlight-color:transparent;
+  }
+  header{
+    background:var(--asphalt);
+    color:#fff;
+    padding:16px 20px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-weight:700;
+    font-size:17px;
+    letter-spacing:0.2px;
+  }
+  .brand .dot{
+    width:10px;height:10px;border-radius:50%;
+    background:var(--signal-amber);
+    box-shadow:0 0 0 3px rgba(201,138,30,0.25);
+  }
+  .header-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .user-pill{
+    display:flex;align-items:center;gap:8px;
+    background:var(--asphalt-light);
+    padding:6px 12px;
+    border-radius:999px;
+    font-size:13px;
+  }
+  .user-pill .perfil-tag{
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+    font-weight:700;
+    padding:2px 7px;
+    border-radius:999px;
+  }
+  .perfil-administrador{background:var(--mercosul-blue);color:#fff;}
+  .perfil-operacional{background:#555f6b;color:#fff;}
+  .logout-btn{
+    background:transparent;border:1px solid rgba(255,255,255,0.25);color:#fff;
+    padding:6px 12px;border-radius:999px;font-size:13px;cursor:pointer;font-weight:600;
+  }
+  nav.tabs{
+    display:flex;
+    background:var(--asphalt-light);
+    border-radius:999px;
+    padding:4px;
+    gap:2px;
+    flex-wrap:wrap;
+  }
+  nav.tabs button{
+    border:none;
+    background:transparent;
+    color:#C9CFD4;
+    padding:8px 18px;
+    border-radius:999px;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  nav.tabs button.active{
+    background:#fff;
+    color:var(--asphalt);
+  }
+  main{
+    max-width:960px;
+    margin:0 auto;
+    padding:24px 16px 80px;
+  }
+  .view{display:none;}
+  .view.active{display:block;}
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:20px;
+  }
+  .stack{display:flex;flex-direction:column;gap:16px;}
+
+  h2.section-title{
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    color:var(--slate-soft);
+    font-weight:700;
+    margin:0 0 4px;
+  }
+
+  /* Captura */
+  #capturaCard{max-width:520px;margin:0 auto;}
+  .photo-well{
+    border:2px dashed var(--border);
+    border-radius:var(--radius);
+    aspect-ratio:4/3;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    background:#FAFBFC;
+    position:relative;
+  }
+  .photo-well img{width:100%;height:100%;object-fit:cover;display:block;}
+  .photo-well .placeholder{
+    text-align:center;
+    color:var(--slate-soft);
+    padding:24px;
+  }
+  .photo-well .placeholder svg{margin-bottom:8px;}
+
+  .btn{
+    border:none;
+    border-radius:10px;
+    padding:13px 18px;
+    font-size:15px;
+    font-weight:600;
+    cursor:pointer;
+    transition:transform .05s ease, opacity .15s ease;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+  }
+  .btn:active{transform:scale(0.98);}
+  .btn:disabled{opacity:0.5;cursor:not-allowed;}
+  .btn-primary{background:var(--mercosul-blue);color:#fff;width:100%;}
+  .btn-secondary{background:var(--asphalt);color:#fff;width:100%;}
+  .btn-ghost{background:transparent;color:var(--slate);border:1px solid var(--border);width:100%;}
+  .btn-success{background:var(--signal-green);color:#fff;width:100%;}
+  .btn-danger{background:var(--signal-red);color:#fff;width:100%;}
+  .btn-danger-text{background:transparent;color:var(--signal-red);padding:6px 10px;font-size:13px;}
+  .btn-small{width:auto;padding:9px 14px;font-size:13px;}
+
+  label.field-label{
+    font-size:12px;
+    font-weight:700;
+    color:var(--slate-soft);
+    text-transform:uppercase;
+    letter-spacing:0.6px;
+    display:block;
+    margin-bottom:6px;
+  }
+  input[type=text],input[type=date],input[type=time],input[type=search],input[type=tel],select,textarea{
+    width:100%;
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:11px 12px;
+    font-size:15px;
+    font-family:var(--font-ui);
+    background:#fff;
+    color:var(--slate);
+  }
+  textarea{resize:vertical;min-height:64px;}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--mercosul-blue);outline-offset:1px;}
+  input[readonly]{
+    background:#F0F2F4;
+    color:var(--slate-soft);
+    font-weight:600;
+    cursor:not-allowed;
+  }
+
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .field-label-fixed{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;}
+
+  /* Placa chip - elemento assinatura */
+  .plate-chip{
+    display:inline-flex;
+    align-items:stretch;
+    height:44px;
+    border-radius:6px;
+    overflow:hidden;
+    border:2px solid #12131a;
+    box-shadow:0 1px 2px rgba(0,0,0,0.15);
+    background:#fff;
+  }
+  .plate-chip .plate-badge{
+    background:var(--mercosul-blue);
+    color:#fff;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    width:22px;
+    font-size:7px;
+    font-weight:700;
+    letter-spacing:0.5px;
+  }
+  .plate-chip .plate-badge .flag{font-size:9px;line-height:1;margin-bottom:2px;}
+  .plate-chip .plate-text{
+    font-family:var(--font-mono);
+    font-weight:700;
+    font-size:19px;
+    letter-spacing:3px;
+    padding:0 12px;
+    display:flex;
+    align-items:center;
+    color:#111;
+    background:
+      linear-gradient(#fff,#fff);
+    white-space:nowrap;
+  }
+  .plate-chip.plate-chip-sm{height:34px;}
+  .plate-chip.plate-chip-sm .plate-text{font-size:14px;letter-spacing:2px;padding:0 8px;}
+  .plate-chip.plate-chip-sm .plate-badge{width:16px;font-size:5px;}
+  .plate-chip.empty .plate-text{color:var(--slate-soft);font-weight:400;letter-spacing:1px;}
+
+  .status-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-size:12px;
+    font-weight:700;
+    padding:5px 10px;
+    border-radius:999px;
+  }
+  .status-alta{background:var(--signal-green-bg);color:var(--signal-green);}
+  .status-media{background:var(--signal-amber-bg);color:var(--signal-amber);}
+  .status-baixa{background:var(--signal-red-bg);color:var(--signal-red);}
+
+  .divider{height:1px;background:var(--border);margin:4px 0;}
+
+  /* Busca / tabela */
+  .filters{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:flex-end;
+    margin-bottom:16px;
+  }
+  .filters .f-item{flex:1;min-width:140px;}
+  .filters .btn{width:auto;}
+
+  .export-bar{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:16px;
+  }
+  .export-bar .btn{width:auto;}
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:14px;
+  }
+  thead th{
+    text-align:left;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.6px;
+    color:var(--slate-soft);
+    font-weight:700;
+    padding:0 10px 10px;
+    border-bottom:2px solid var(--border);
+  }
+  tbody td{
+    padding:10px;
+    border-bottom:1px solid var(--border);
+    vertical-align:middle;
+  }
+  tbody tr:hover{background:#FAFBFC;}
+  .thumb{
+    width:64px;height:48px;
+    object-fit:cover;
+    border-radius:6px;
+    border:1px solid var(--border);
+    cursor:pointer;
+    display:block;
+  }
+  .table-wrap{overflow-x:auto;border-radius:var(--radius);}
+  .empty-state{
+    text-align:center;
+    padding:48px 20px;
+    color:var(--slate-soft);
+  }
+  .empty-state svg{margin-bottom:12px;opacity:0.5;}
+  .count-pill{
+    font-size:13px;
+    color:var(--slate-soft);
+    margin-bottom:14px;
+  }
+  .obs-text{font-size:13px;color:var(--slate-soft);max-width:180px;display:block;white-space:normal;}
+
+  /* Modal foto */
+  .modal-overlay{
+    position:fixed;inset:0;
+    background:rgba(20,22,26,0.75);
+    display:none;
+    align-items:center;justify-content:center;
+    z-index:100;
+    padding:20px;
+  }
+  .modal-overlay.active{display:flex;}
+  .modal-box{
+    background:#fff;
+    border-radius:var(--radius);
+    padding:16px;
+    max-width:520px;
+    width:100%;
+  }
+  .modal-box img{width:100%;border-radius:10px;display:block;}
+  .modal-box .modal-meta{display:flex;justify-content:space-between;align-items:center;margin-top:14px;}
+  .modal-box .modal-obs{font-size:13px;color:var(--slate-soft);margin-top:10px;}
+
+  /* Toast */
+  #toast{
+    position:fixed;
+    bottom:20px;left:50%;
+    transform:translateX(-50%) translateY(20px);
+    background:var(--asphalt);
+    color:#fff;
+    padding:12px 20px;
+    border-radius:10px;
+    font-size:14px;
+    font-weight:600;
+    opacity:0;
+    pointer-events:none;
+    transition:all .25s ease;
+    z-index:200;
+    max-width:90vw;
+    display:flex;align-items:center;gap:8px;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  #toast.error{background:var(--signal-red);}
+  #toast.success{background:var(--signal-green);}
+
+  .spinner{
+    width:16px;height:16px;
+    border:2px solid rgba(255,255,255,0.35);
+    border-top-color:#fff;
+    border-radius:50%;
+    animation:spin 0.7s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  .hint{font-size:12px;color:var(--slate-soft);line-height:1.5;}
+
+  /* Login */
+  #loginScreen{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:var(--asphalt);
+    padding:24px;
+  }
+  .login-box{
+    background:#fff;
+    border-radius:var(--radius);
+    padding:28px;
+    max-width:420px;
+    width:100%;
+  }
+  .login-brand{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin-bottom:22px;
+    padding-bottom:20px;
+    border-bottom:1px solid var(--border);
+  }
+  .login-logo{
+    width:50px;height:50px;
+    border-radius:12px;
+    background:linear-gradient(135deg,var(--mercosul-blue),#123069);
+    display:flex;align-items:center;justify-content:center;
+    font-size:24px;
+    flex-shrink:0;
+  }
+  .login-appname{font-size:19px;font-weight:800;color:var(--asphalt);letter-spacing:-0.2px;line-height:1.2;}
+  .login-tagline{font-size:12px;color:var(--slate-soft);margin-top:3px;}
+  .login-title{font-size:16px;font-weight:700;margin-bottom:4px;color:var(--asphalt);}
+  .login-sub{font-size:13px;color:var(--slate-soft);margin-bottom:20px;}
+  .password-wrap{position:relative;}
+  .password-wrap input{padding-right:70px;}
+  .toggle-pass{
+    position:absolute;right:8px;top:50%;transform:translateY(-50%);
+    background:none;border:none;cursor:pointer;
+    color:var(--mercosul-blue);font-size:12px;font-weight:700;
+    padding:4px 6px;
+  }
+  .login-error{
+    background:var(--signal-red-bg);
+    color:var(--signal-red);
+    font-size:13px;
+    font-weight:600;
+    padding:10px 12px;
+    border-radius:8px;
+  }
+  .user-card{
+    display:flex;align-items:center;justify-content:space-between;
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:12px 14px;
+    margin-bottom:10px;
+  }
+  .user-card .u-name{font-weight:700;font-size:14px;}
+  .user-card .u-meta{font-size:12px;color:var(--slate-soft);margin-top:2px;}
+
+  /* Usuarios / sub-tabs */
+  .subtabs{display:flex;gap:8px;margin-bottom:18px;}
+  .subtabs button{
+    border:1px solid var(--border);
+    background:#fff;
+    padding:8px 16px;
+    border-radius:999px;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+    color:var(--slate-soft);
+  }
+  .subtabs button.active{background:var(--asphalt);color:#fff;border-color:var(--asphalt);}
+  .subview{display:none;}
+  .subview.active{display:block;}
+
+  @media (max-width:520px){
+    .row2{grid-template-columns:1fr;}
+    header{padding:14px 16px;}
+    main{padding:18px 12px 80px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== LOGIN ===================== -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-brand">
+      <div class="login-logo">🚗</div>
+      <div>
+        <div class="login-appname">Registro de Veículos</div>
+        <div class="login-tagline">Controle de acesso e identificação de veículos</div>
+      </div>
+    </div>
+    <div id="loginContent"></div>
+  </div>
+</div>
+
+<!-- ===================== APP ===================== -->
+<div id="appRoot" style="display:none;">
+
+  <header>
+    <div class="brand"><span class="dot"></span> Registro de Placas</div>
+    <nav class="tabs">
+      <button id="tabCapturaBtn" class="active">Registrar</button>
+      <button id="tabBuscaBtn">Consultar</button>
+      <button id="tabUsuariosBtn" style="display:none;">Usuários</button>
+    </nav>
+    <div class="header-right">
+      <div class="user-pill">
+        <span id="headerUserName"></span>
+        <span class="perfil-tag" id="headerUserPerfil"></span>
+      </div>
+      <button class="logout-btn" id="changePasswordBtn">Alterar senha</button>
+      <button class="logout-btn" id="logoutBtn">Sair</button>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- VIEW: CAPTURA -->
+    <section id="viewCaptura" class="view active">
+      <div id="capturaCard" class="card stack">
+        <div>
+          <h2 class="section-title">1. Foto da placa</h2>
+          <div class="photo-well" id="photoWell">
+            <div class="placeholder" id="photoPlaceholder">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 8a2 2 0 0 1 2-2h1.2a1 1 0 0 0 .8-.4l1-1.2a1 1 0 0 1 .8-.4h4.4a1 1 0 0 1 .8.4l1 1.2a1 1 0 0 0 .8.4H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z"/><circle cx="12" cy="13" r="3.2"/></svg>
+              <div>Nenhuma foto ainda</div>
+            </div>
+            <img id="photoPreview" style="display:none;">
+          </div>
+        </div>
+
+        <input type="file" id="fileInput" accept="image/*" capture="environment" style="display:none;">
+        <label for="fileInput" class="btn btn-primary" id="captureLabel">📷 Tirar foto da placa</label>
+
+        <div id="recognizeBlock" style="display:none;">
+          <div class="divider"></div>
+          <h2 class="section-title">2. Placa reconhecida</h2>
+          <div class="stack" style="gap:10px;">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+              <div class="plate-chip empty" id="plateChipPreview">
+                <div class="plate-badge"><span class="flag">🇧🇷</span>BR</div>
+                <div class="plate-text" id="plateChipText">— — —</div>
+              </div>
+              <span id="confBadge"></span>
+            </div>
+            <div>
+              <label class="field-label" for="plateInput">Confirme ou corrija a placa</label>
+              <input type="text" id="plateInput" placeholder="ABC1D23" maxlength="8" style="text-transform:uppercase;font-family:var(--font-mono);font-weight:700;letter-spacing:2px;">
+              <p class="hint" style="margin-top:6px;">Se a foto não ficou legível, corrija o texto acima manualmente.</p>
+            </div>
+            <div class="row2">
+              <div>
+                <label class="field-label field-label-fixed" for="dateInput">Data (no momento da foto)</label>
+                <input type="date" id="dateInput" readonly>
+              </div>
+              <div>
+                <label class="field-label field-label-fixed" for="timeInput">Hora (no momento da foto)</label>
+                <input type="time" id="timeInput" readonly>
+              </div>
+            </div>
+            <div>
+              <label class="field-label" for="obsInput">Observação (opcional)</label>
+              <textarea id="obsInput" placeholder="Ex: veículo autorizado, visitante, entrega, etc."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div id="actionBlock" style="display:none;" class="stack">
+          <div class="divider"></div>
+          <button class="btn btn-success" id="saveBtn">✓ Salvar registro</button>
+          <button class="btn btn-ghost" id="discardBtn">Descartar e tirar outra foto</button>
+        </div>
+
+        <p class="hint">A foto é enviada para reconhecimento automático da placa. A data e a hora são registradas automaticamente e não podem ser alteradas.</p>
+      </div>
+    </section>
+
+    <!-- VIEW: BUSCA -->
+    <section id="viewBusca" class="view">
+      <div class="filters">
+        <div class="f-item">
+          <label class="field-label" for="searchPlate">Buscar placa</label>
+          <input type="search" id="searchPlate" placeholder="Ex: ABC1D23">
+        </div>
+        <div class="f-item">
+          <label class="field-label" for="searchFrom">De</label>
+          <input type="date" id="searchFrom">
+        </div>
+        <div class="f-item">
+          <label class="field-label" for="searchTo">Até</label>
+          <input type="date" id="searchTo">
+        </div>
+        <button class="btn btn-ghost btn-small" id="clearFiltersBtn">Limpar</button>
+      </div>
+
+      <div class="export-bar">
+        <button class="btn btn-secondary btn-small" id="exportCsvBtn">⬇ Exportar CSV (planilha)</button>
+        <button class="btn btn-ghost btn-small" id="exportJsonBtn">⬇ Exportar backup completo (com fotos)</button>
+        <button class="btn btn-ghost btn-small" id="refreshBtn">↻ Atualizar</button>
+      </div>
+
+      <div class="count-pill" id="countPill"></div>
+
+      <div class="table-wrap card" style="padding:0;">
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Hora</th>
+              <th>Placa</th>
+              <th>Observação</th>
+              <th>Foto</th>
+              <th id="acoesHeader"></th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+        <div class="empty-state" id="emptyState" style="display:none;">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11"/></svg>
+          <div>Nenhum registro encontrado.<br>Registre uma placa na aba "Registrar".</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW: USUARIOS (somente administrador) -->
+    <section id="viewUsuarios" class="view">
+      <div class="subtabs">
+        <button id="subCadastroBtn" class="active">Cadastro de usuários</button>
+        <button id="subAcessosBtn">Histórico de acessos</button>
+      </div>
+
+      <div id="subCadastro" class="subview active">
+        <div class="card stack" style="max-width:520px;margin-bottom:20px;">
+          <h2 class="section-title">Novo usuário — Passo 1 de 2</h2>
+          <div class="hint">Primeiro, crie o login de acesso direto no painel do Supabase (Authentication → Users → Add user).</div>
+          <div>
+            <label class="field-label" for="novoUsuario">Nome de usuário (sem espaços)</label>
+            <input type="text" id="novoUsuario" placeholder="ex: joao.silva">
+          </div>
+          <div>
+            <label class="field-label">E-mail a usar no Supabase (copie e cole lá)</label>
+            <div style="display:flex;gap:8px;">
+              <input type="text" id="geradoEmail" readonly value="">
+              <button class="btn btn-ghost btn-small" id="copiarEmailBtn" style="width:auto;white-space:nowrap;">Copiar</button>
+            </div>
+          </div>
+          <div class="hint">No Supabase, use esse e-mail e defina a senha da pessoa. Depois, copie o "User UID" gerado e cole no Passo 2 abaixo.</div>
+
+          <div class="divider" style="margin:6px 0;"></div>
+          <h2 class="section-title">Passo 2 de 2 — Completar o perfil</h2>
+          <div>
+            <label class="field-label" for="novoUid">User UID (copiado do Supabase)</label>
+            <input type="text" id="novoUid" placeholder="ex: 3fa85f64-5717-4562-b3fc-2c963f66afa6">
+          </div>
+          <div>
+            <label class="field-label" for="novoNome">Nome do usuário</label>
+            <input type="text" id="novoNome" placeholder="Ex: João Silva">
+          </div>
+          <div>
+            <label class="field-label" for="novoWhatsapp">Número de contato (WhatsApp)</label>
+            <input type="tel" id="novoWhatsapp" placeholder="(11) 91234-5678">
+          </div>
+          <div>
+            <label class="field-label" for="novoPerfil">Perfil</label>
+            <select id="novoPerfil">
+              <option value="operacional">Operacional</option>
+              <option value="administrador">Administrador</option>
+            </select>
+          </div>
+          <div id="addUserError" class="login-error" style="display:none;"></div>
+          <button class="btn btn-primary" id="addUserBtn">Cadastrar perfil</button>
+        </div>
+
+        <h2 class="section-title">Usuários cadastrados</h2>
+        <div id="usersList" class="stack" style="gap:10px;"></div>
+      </div>
+
+      <div id="subAcessos" class="subview">
+        <div class="table-wrap card" style="padding:0;">
+          <table>
+            <thead>
+              <tr><th>Usuário</th><th>Perfil</th><th>Login</th><th>Logout</th></tr>
+            </thead>
+            <tbody id="acessosBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <img id="modalImg">
+    <div class="modal-meta">
+      <div>
+        <div class="plate-chip plate-chip-sm" id="modalPlateChip"><div class="plate-badge"><span class="flag">🇧🇷</span>BR</div><div class="plate-text" id="modalPlateText"></div></div>
+      </div>
+      <button class="btn btn-ghost btn-small" id="modalCloseBtn">Fechar</button>
+    </div>
+    <div class="modal-obs" id="modalObs"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="confirmOverlay">
+  <div class="modal-box" style="max-width:400px;">
+    <div class="login-title" id="confirmTitle">Confirmar ação</div>
+    <div class="hint" id="confirmMessage" style="margin:10px 0 20px;font-size:14px;"></div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-ghost" id="confirmCancelBtn">Cancelar</button>
+      <button class="btn btn-danger" id="confirmOkBtn">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="changePasswordOverlay">
+  <div class="modal-box" style="max-width:400px;">
+    <div class="login-title">Alterar minha senha</div>
+    <div class="stack" style="margin-top:12px;">
+      <div>
+        <label class="field-label" for="novaSenhaPropria">Nova senha</label>
+        <input type="password" id="novaSenhaPropria" autocomplete="new-password">
+      </div>
+      <div>
+        <label class="field-label" for="confirmaSenhaPropria">Confirme a nova senha</label>
+        <input type="password" id="confirmaSenhaPropria" autocomplete="new-password">
+      </div>
+      <div id="changePasswordError" class="login-error" style="display:none;"></div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-ghost" id="changePasswordCancelBtn">Cancelar</button>
+        <button class="btn btn-primary" id="changePasswordSaveBtn">Salvar nova senha</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="editUserOverlay">
+  <div class="modal-box" style="max-width:440px;">
+    <div class="login-title">Editar usuário</div>
+    <div class="stack" style="margin-top:12px;">
+      <div>
+        <label class="field-label" for="editNome">Nome do usuário</label>
+        <input type="text" id="editNome">
+      </div>
+      <div>
+        <label class="field-label" for="editUsuario">Usuário de acesso (não pode ser alterado aqui)</label>
+        <input type="text" id="editUsuario" readonly>
+      </div>
+      <div>
+        <label class="field-label" for="editWhatsapp">Número de contato (WhatsApp)</label>
+        <input type="tel" id="editWhatsapp">
+      </div>
+      <div>
+        <label class="field-label" for="editPerfil">Perfil</label>
+        <select id="editPerfil">
+          <option value="operacional">Operacional</option>
+          <option value="administrador">Administrador</option>
+        </select>
+      </div>
+      <div class="hint">Para trocar a senha desta pessoa, use o painel do Supabase (Authentication → Users → selecione a pessoa → Reset password).</div>
+      <div id="editUserError" class="login-error" style="display:none;"></div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-ghost" id="editCancelBtn">Cancelar</button>
+        <button class="btn btn-primary" id="editSaveBtn">Salvar alterações</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ==================================================================
+// CONFIGURAÇÃO DO SUPABASE — troque as duas linhas abaixo pelos
+// dados do SEU projeto (Supabase > Settings > API).
+// A "anon key" é pública por natureza, protegida pelas regras de
+// segurança (RLS) que já configuramos no banco — pode ficar aqui.
+// ==================================================================
+const SUPABASE_URL = 'https://axkqaavbfuwpgdaiuicw.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4a3FhYXZiZnV3cGdkYWl1aWN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNTkwMDIsImV4cCI6MjA5ODYzNTAwMn0.YYNUAbVbw8rK1-6Aohw7MXT1IXLe3p3A-N6ff5m5pCU';
+const EMAIL_DOMAIN = 'placas.local'; // não precisa mudar isso
+const FOTOS_BUCKET = 'fotos-placas'; // precisa ser igual ao nome do bucket criado no Storage
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ---------- Estado ----------
+let capturedPhotoForApi = null;
+let capturedPhotoForStorage = null;
+
+let currentUser = null;
+let currentAccessId = null;
+let allRecords = [];
+let allUsers = [];
+
+// ---------- Utilidades ----------
+function toast(msg, type){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show' + (type ? ' '+type : '');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(()=>{ t.className=''; }, 3200);
+}
+function pad(n){ return String(n).padStart(2,'0'); }
+function todayISO(){
+  const d = new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function nowHM(){
+  const d = new Date();
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function formatDateBR(iso){
+  if(!iso) return '';
+  const [y,m,d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+function formatDateTime(ts){
+  if(!ts) return '—';
+  const d = new Date(ts);
+  return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function resizeImage(dataUrl, maxDim, quality){
+  return new Promise((resolve,reject)=>{
+    const img = new Image();
+    img.onload = ()=>{
+      let w = img.width, h = img.height;
+      if(w > h && w > maxDim){ h = h*(maxDim/w); w = maxDim; }
+      else if(h >= w && h > maxDim){ w = w*(maxDim/h); h = maxDim; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img,0,0,w,h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+}
+function dataUrlToBase64(dataUrl){ return dataUrl.split(',')[1]; }
+function escapeHtml(str){
+  return (str||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+// ---------- Perfis (Supabase) ----------
+async function fetchProfile(userId){
+  const { data, error } = await sb.from('profiles').select('*').eq('id', userId).maybeSingle();
+  if(error){ console.error(error); return null; }
+  return data;
+}
+
+// ---------- Sessão / Login ----------
+async function init(){
+  const { data: { session } } = await sb.auth.getSession();
+  if(session){
+    const profile = await fetchProfile(session.user.id);
+    if(profile && profile.ativo !== false){
+      currentUser = profile;
+      currentAccessId = localStorage.getItem('accessId') || null;
+      showApp();
+      return;
+    }
+    await sb.auth.signOut();
+    localStorage.removeItem('accessId');
+  }
+  showLogin();
+}
+
+function showLogin(){
+  document.getElementById('appRoot').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  renderLoginContent();
+}
+
+function showLoginError(el, msg){ el.textContent = msg; el.style.display='block'; }
+
+// Modal de confirmação própria (o confirm() nativo do navegador não funciona
+// dentro de alguns ambientes, então usamos esta alternativa)
+function showConfirm(message, title){
+  return new Promise((resolve)=>{
+    const overlay = document.getElementById('confirmOverlay');
+    document.getElementById('confirmTitle').textContent = title || 'Confirmar ação';
+    document.getElementById('confirmMessage').textContent = message;
+    overlay.classList.add('active');
+
+    const okBtn = document.getElementById('confirmOkBtn');
+    const cancelBtn = document.getElementById('confirmCancelBtn');
+
+    function cleanup(result){
+      overlay.classList.remove('active');
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      resolve(result);
+    }
+    function onOk(){ cleanup(true); }
+    function onCancel(){ cleanup(false); }
+
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+  });
+}
+
+function renderLoginContent(){
+  const box = document.getElementById('loginContent');
+  box.innerHTML = `
+    <div class="login-title">Acessar o sistema</div>
+    <div class="login-sub">Informe seu usuário e senha para continuar.</div>
+    <div class="stack">
+      <div>
+        <label class="field-label" for="loginUsuario">Usuário</label>
+        <input type="text" id="loginUsuario" placeholder="Digite seu usuário" autocomplete="username">
+      </div>
+      <div>
+        <label class="field-label" for="loginSenha">Senha</label>
+        <input type="password" id="loginSenha" placeholder="Digite sua senha" autocomplete="current-password">
+      </div>
+      <div id="loginError" class="login-error" style="display:none;"></div>
+      <button class="btn btn-primary" id="loginBtn">Entrar</button>
+    </div>
+  `;
+  const doLogin = async ()=>{
+    const usuario = document.getElementById('loginUsuario').value.trim().toLowerCase();
+    const senha = document.getElementById('loginSenha').value;
+    const errEl = document.getElementById('loginError');
+    errEl.style.display = 'none';
+    if(!usuario || !senha){ showLoginError(errEl, 'Informe usuário e senha.'); return; }
+
+    const email = `${usuario}@${EMAIL_DOMAIN}`;
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: senha });
+    if(error){ showLoginError(errEl, 'Usuário ou senha inválidos.'); return; }
+
+    const profile = await fetchProfile(data.user.id);
+    if(!profile){
+      showLoginError(errEl, 'Seu login existe, mas ainda não tem um perfil cadastrado. Fale com um administrador.');
+      await sb.auth.signOut();
+      return;
+    }
+    if(profile.ativo === false){
+      showLoginError(errEl, 'Este usuário está inativo. Fale com um administrador.');
+      await sb.auth.signOut();
+      return;
+    }
+    await loginAsUser(profile);
+  };
+  document.getElementById('loginBtn').addEventListener('click', doLogin);
+  document.getElementById('loginSenha').addEventListener('keydown', (e)=>{ if(e.key === 'Enter') doLogin(); });
+  document.getElementById('loginUsuario').addEventListener('keydown', (e)=>{ if(e.key === 'Enter') doLogin(); });
+}
+
+async function loginAsUser(profile){
+  currentUser = profile;
+  const { data, error } = await sb.from('acessos').insert({
+    user_id: profile.id, nome: profile.nome, perfil: profile.perfil
+  }).select().single();
+  if(!error && data){
+    currentAccessId = data.id;
+    localStorage.setItem('accessId', data.id);
+  }
+  toast(`Bem-vindo(a), ${profile.nome}.`, 'success');
+  showApp();
+}
+
+async function logout(){
+  if(currentAccessId){
+    await sb.from('acessos').update({ logout_at: new Date().toISOString() }).eq('id', currentAccessId);
+  }
+  await sb.auth.signOut();
+  localStorage.removeItem('accessId');
+  currentUser = null;
+  currentAccessId = null;
+  switchTab('captura');
+  showLogin();
+}
+document.getElementById('logoutBtn').addEventListener('click', logout);
+
+function showApp(){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appRoot').style.display = 'block';
+  document.getElementById('headerUserName').textContent = currentUser.nome;
+  const perfilTag = document.getElementById('headerUserPerfil');
+  perfilTag.textContent = currentUser.perfil === 'administrador' ? 'Administrador' : 'Operacional';
+  perfilTag.className = 'perfil-tag perfil-' + currentUser.perfil;
+
+  const isAdmin = currentUser.perfil === 'administrador';
+  document.getElementById('tabUsuariosBtn').style.display = isAdmin ? 'inline-flex' : 'none';
+  document.getElementById('exportCsvBtn').style.display = isAdmin ? 'inline-flex' : 'none';
+  document.getElementById('exportJsonBtn').style.display = isAdmin ? 'inline-flex' : 'none';
+
+  dateInput.value = todayISO();
+  timeInput.value = nowHM();
+}
+
+// ---------- Tabs ----------
+const tabCapturaBtn = document.getElementById('tabCapturaBtn');
+const tabBuscaBtn = document.getElementById('tabBuscaBtn');
+const tabUsuariosBtn = document.getElementById('tabUsuariosBtn');
+const viewCaptura = document.getElementById('viewCaptura');
+const viewBusca = document.getElementById('viewBusca');
+const viewUsuarios = document.getElementById('viewUsuarios');
+
+tabCapturaBtn.addEventListener('click', ()=>switchTab('captura'));
+tabBuscaBtn.addEventListener('click', ()=>switchTab('busca'));
+tabUsuariosBtn.addEventListener('click', ()=>switchTab('usuarios'));
+
+function switchTab(tab){
+  tabCapturaBtn.classList.toggle('active', tab==='captura');
+  tabBuscaBtn.classList.toggle('active', tab==='busca');
+  tabUsuariosBtn.classList.toggle('active', tab==='usuarios');
+  viewCaptura.classList.toggle('active', tab==='captura');
+  viewBusca.classList.toggle('active', tab==='busca');
+  viewUsuarios.classList.toggle('active', tab==='usuarios');
+  if(tab === 'busca'){ loadAndRenderRecords(); }
+  if(tab === 'usuarios'){ renderUsersList(); renderAcessos(); }
+}
+
+// ---------- Sub-tabs Usuarios ----------
+const subCadastroBtn = document.getElementById('subCadastroBtn');
+const subAcessosBtn = document.getElementById('subAcessosBtn');
+subCadastroBtn.addEventListener('click', ()=>switchSubTab('cadastro'));
+subAcessosBtn.addEventListener('click', ()=>switchSubTab('acessos'));
+function switchSubTab(tab){
+  subCadastroBtn.classList.toggle('active', tab==='cadastro');
+  subAcessosBtn.classList.toggle('active', tab==='acessos');
+  document.getElementById('subCadastro').classList.toggle('active', tab==='cadastro');
+  document.getElementById('subAcessos').classList.toggle('active', tab==='acessos');
+  if(tab === 'acessos') renderAcessos();
+}
+
+// ---------- Captura de foto ----------
+const fileInput = document.getElementById('fileInput');
+const photoWell = document.getElementById('photoWell');
+const photoPreview = document.getElementById('photoPreview');
+const photoPlaceholder = document.getElementById('photoPlaceholder');
+const captureLabel = document.getElementById('captureLabel');
+const recognizeBlock = document.getElementById('recognizeBlock');
+const actionBlock = document.getElementById('actionBlock');
+const plateChipText = document.getElementById('plateChipText');
+const plateChipPreview = document.getElementById('plateChipPreview');
+const confBadge = document.getElementById('confBadge');
+const plateInput = document.getElementById('plateInput');
+const dateInput = document.getElementById('dateInput');
+const timeInput = document.getElementById('timeInput');
+const obsInput = document.getElementById('obsInput');
+
+fileInput.addEventListener('change', async (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+  reader.onload = async (ev)=>{
+    const rawDataUrl = ev.target.result;
+
+    photoPreview.src = rawDataUrl;
+    photoPreview.style.display = 'block';
+    photoPlaceholder.style.display = 'none';
+
+    recognizeBlock.style.display = 'none';
+    actionBlock.style.display = 'none';
+    plateInput.value = '';
+    obsInput.value = '';
+    plateChipText.textContent = '— — —';
+    plateChipPreview.classList.add('empty');
+    confBadge.innerHTML = '';
+
+    captureLabel.innerHTML = '<div class="spinner"></div> Analisando placa...';
+    captureLabel.style.pointerEvents = 'none';
+
+    dateInput.value = todayISO();
+    timeInput.value = nowHM();
+
+    try{
+      const [forApi, forStorage] = await Promise.all([
+        resizeImage(rawDataUrl, 1024, 0.85),
+        resizeImage(rawDataUrl, 480, 0.6)
+      ]);
+      capturedPhotoForApi = forApi;
+      capturedPhotoForStorage = forStorage;
+
+      const result = await recognizePlate(forApi);
+
+      plateInput.value = result.placa || '';
+      updatePlateChip(result.placa || '');
+      setConfidenceBadge(result.confianca);
+
+      recognizeBlock.style.display = 'block';
+      actionBlock.style.display = 'flex';
+
+      if(!result.placa){
+        toast('Não consegui ler a placa automaticamente. Digite manualmente.', 'error');
+      } else {
+        toast('Placa reconhecida. Confira antes de salvar.', 'success');
+      }
+    }catch(err){
+      console.error(err);
+      recognizeBlock.style.display = 'block';
+      actionBlock.style.display = 'flex';
+      toast('Falha no reconhecimento automático. Digite a placa manualmente.', 'error');
+    }finally{
+      captureLabel.innerHTML = '📷 Tirar outra foto';
+      captureLabel.style.pointerEvents = 'auto';
+    }
+  };
+  reader.readAsDataURL(file);
+});
+
+function updatePlateChip(text){
+  const clean = (text || '').toUpperCase();
+  plateChipText.textContent = clean || '— — —';
+  plateChipPreview.classList.toggle('empty', !clean);
+}
+plateInput.addEventListener('input', ()=>{
+  plateInput.value = plateInput.value.toUpperCase();
+  updatePlateChip(plateInput.value);
+});
+
+function setConfidenceBadge(conf){
+  const map = {
+    alta: ['status-alta','Confiança alta'],
+    media: ['status-media','Confiança média — confira'],
+    baixa: ['status-baixa','Confiança baixa — confira']
+  };
+  const key = (conf||'baixa').toLowerCase();
+  const [cls,label] = map[key] || map.baixa;
+  confBadge.innerHTML = `<span class="status-badge ${cls}">${label}</span>`;
+}
+
+async function recognizePlate(imageDataUrl){
+  const base64 = dataUrlToBase64(imageDataUrl);
+
+  // Chama a NOSSA função (Edge Function) dentro do Supabase, que guarda a
+  // chave da Anthropic em segredo e repassa a foto para a IA analisar.
+  const { data: { session } } = await sb.auth.getSession();
+  const functionUrl = `${SUPABASE_URL}/functions/v1/reconhecer-placa`;
+
+  const response = await fetch(functionUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${session ? session.access_token : SUPABASE_ANON_KEY}`
+    },
+    body: JSON.stringify({ image: base64 })
+  });
+  const data = await response.json();
+  const textBlock = (data.content || []).find(b => b.type === 'text');
+  const raw = textBlock ? textBlock.text : '{}';
+  const clean = raw.replace(/```json|```/g,'').trim();
+  let parsed;
+  try{ parsed = JSON.parse(clean); }catch(e){ parsed = { placa:'', confianca:'baixa', tipo:'indefinido' }; }
+  return parsed;
+}
+
+// ---------- Salvar / descartar ----------
+document.getElementById('discardBtn').addEventListener('click', resetCaptureForm);
+
+function resetCaptureForm(){
+  capturedPhotoForApi = null;
+  capturedPhotoForStorage = null;
+  photoPreview.style.display = 'none';
+  photoPreview.src = '';
+  photoPlaceholder.style.display = 'block';
+  recognizeBlock.style.display = 'none';
+  actionBlock.style.display = 'none';
+  captureLabel.innerHTML = '📷 Tirar foto da placa';
+  fileInput.value = '';
+  obsInput.value = '';
+}
+
+document.getElementById('saveBtn').addEventListener('click', async ()=>{
+  const placa = plateInput.value.trim().toUpperCase();
+  const date = dateInput.value;
+  const time = timeInput.value;
+  const obs = obsInput.value.trim();
+
+  if(!placa){ toast('Digite a placa antes de salvar.', 'error'); return; }
+  if(!capturedPhotoForStorage){ toast('Nenhuma foto capturada.', 'error'); return; }
+
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.disabled = true;
+  saveBtn.innerHTML = '<div class="spinner" style="border-color:rgba(0,0,0,0.2);border-top-color:var(--asphalt);"></div> Salvando...';
+
+  try{
+    const fileName = `${Date.now()}_${Math.random().toString(36).slice(2,8)}.jpg`;
+    const path = `${currentUser.id}/${fileName}`;
+    const blob = await (await fetch(capturedPhotoForStorage)).blob();
+
+    const { error: uploadError } = await sb.storage.from(FOTOS_BUCKET).upload(path, blob, { contentType: 'image/jpeg' });
+    if(uploadError) throw uploadError;
+
+    const { error: insertError } = await sb.from('registros').insert({
+      data_registro: date,
+      hora_registro: time,
+      placa, observacao: obs,
+      foto_path: path,
+      registrado_por: currentUser.id
+    });
+    if(insertError) throw insertError;
+
+    toast('Registro salvo com sucesso.', 'success');
+    resetCaptureForm();
+  }catch(err){
+    console.error(err);
+    toast('Erro ao salvar o registro. Tente novamente.', 'error');
+  }finally{
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = '✓ Salvar registro';
+  }
+});
+
+// ---------- Consulta / tabela ----------
+const tableBody = document.getElementById('tableBody');
+const emptyState = document.getElementById('emptyState');
+const countPill = document.getElementById('countPill');
+const searchPlate = document.getElementById('searchPlate');
+const searchFrom = document.getElementById('searchFrom');
+const searchTo = document.getElementById('searchTo');
+
+async function loadAndRenderRecords(){
+  countPill.textContent = 'Carregando...';
+  const { data, error } = await sb.from('registros').select('*').order('created_at', { ascending: false });
+  if(error){ console.error(error); toast('Erro ao carregar os registros.', 'error'); allRecords = []; renderTable(); return; }
+
+  allRecords = data || [];
+
+  // gera um link temporário (1 hora) para cada foto, já que o balde é privado
+  await Promise.all(allRecords.map(async (r)=>{
+    if(!r.foto_path){ r.photoUrl = ''; return; }
+    const { data: signed, error: signErr } = await sb.storage.from(FOTOS_BUCKET).createSignedUrl(r.foto_path, 3600);
+    r.photoUrl = (!signErr && signed) ? signed.signedUrl : '';
+  }));
+
+  renderTable();
+}
+
+function renderTable(){
+  const q = searchPlate.value.trim().toUpperCase().replace(/[\s-]/g,'');
+  const from = searchFrom.value;
+  const to = searchTo.value;
+  const isAdmin = currentUser && currentUser.perfil === 'administrador';
+
+  let filtered = allRecords.filter(r=>{
+    if(q && !r.placa.replace(/[\s-]/g,'').includes(q)) return false;
+    if(from && r.data_registro < from) return false;
+    if(to && r.data_registro > to) return false;
+    return true;
+  });
+
+  countPill.textContent = `${filtered.length} registro${filtered.length===1?'':'s'} encontrado${filtered.length===1?'':'s'}`;
+
+  tableBody.innerHTML = '';
+  emptyState.style.display = filtered.length ? 'none' : 'block';
+
+  filtered.forEach(r=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${formatDateBR(r.data_registro)}</td>
+      <td>${(r.hora_registro||'').slice(0,5)}</td>
+      <td>
+        <div class="plate-chip plate-chip-sm">
+          <div class="plate-badge"><span class="flag">🇧🇷</span>BR</div>
+          <div class="plate-text">${r.placa}</div>
+        </div>
+      </td>
+      <td><span class="obs-text">${escapeHtml(r.observacao||'—')}</span></td>
+      <td>${r.photoUrl ? `<img class="thumb" src="${r.photoUrl}" data-id="${r.id}">` : '—'}</td>
+      <td>${isAdmin ? `<button class="btn-danger-text" data-del="${r.id}">Excluir</button>` : ''}</td>
+    `;
+    tableBody.appendChild(tr);
+  });
+
+  tableBody.querySelectorAll('img.thumb').forEach(img=>{
+    img.addEventListener('click', ()=>openModal(img.dataset.id));
+  });
+  tableBody.querySelectorAll('[data-del]').forEach(btn=>{
+    btn.addEventListener('click', ()=>deleteRecord(btn.dataset.del));
+  });
+}
+
+async function deleteRecord(id){
+  if(!currentUser || currentUser.perfil !== 'administrador'){
+    toast('Apenas administradores podem excluir registros.', 'error');
+    return;
+  }
+  if(!(await showConfirm('Excluir este registro? Essa ação não pode ser desfeita.', 'Excluir registro'))) return;
+
+  const record = allRecords.find(r=>r.id === id);
+  const { error } = await sb.from('registros').delete().eq('id', id);
+  if(error){ console.error(error); toast('Erro ao excluir o registro.', 'error'); return; }
+
+  if(record && record.foto_path){
+    await sb.storage.from(FOTOS_BUCKET).remove([record.foto_path]);
+  }
+
+  allRecords = allRecords.filter(r=>r.id !== id);
+  renderTable();
+  toast('Registro excluído.', 'success');
+}
+
+[searchPlate, searchFrom, searchTo].forEach(el=> el.addEventListener('input', renderTable));
+document.getElementById('clearFiltersBtn').addEventListener('click', ()=>{
+  searchPlate.value=''; searchFrom.value=''; searchTo.value='';
+  renderTable();
+});
+document.getElementById('refreshBtn').addEventListener('click', loadAndRenderRecords);
+
+// ---------- Modal foto ----------
+const modalOverlay = document.getElementById('modalOverlay');
+const modalImg = document.getElementById('modalImg');
+const modalPlateText = document.getElementById('modalPlateText');
+const modalObs = document.getElementById('modalObs');
+
+function openModal(id){
+  const rec = allRecords.find(r=>r.id===id);
+  if(!rec) return;
+  modalImg.src = rec.photoUrl;
+  modalPlateText.textContent = rec.placa;
+  modalObs.textContent = rec.observacao ? ('Observação: ' + rec.observacao) : '';
+  modalOverlay.classList.add('active');
+}
+document.getElementById('modalCloseBtn').addEventListener('click', ()=> modalOverlay.classList.remove('active'));
+modalOverlay.addEventListener('click', (e)=>{ if(e.target === modalOverlay) modalOverlay.classList.remove('active'); });
+
+// ---------- Exportação ----------
+function downloadBlob(content, filename, mime){
+  const blob = new Blob([content], {type: mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('exportCsvBtn').addEventListener('click', ()=>{
+  if(!currentUser || currentUser.perfil !== 'administrador'){
+    toast('Apenas administradores podem exportar os dados.', 'error');
+    return;
+  }
+  let csv = 'Data;Hora;Placa;Observacao\r\n';
+  allRecords.forEach(r=>{
+    const obsClean = (r.observacao||'').replace(/;/g,',');
+    csv += `${formatDateBR(r.data_registro)};${(r.hora_registro||'').slice(0,5)};${r.placa};${obsClean}\r\n`;
+  });
+  downloadBlob('\ufeff'+csv, `registros-veiculos-${todayISO()}.csv`, 'text/csv;charset=utf-8');
+  toast('CSV exportado.', 'success');
+});
+
+document.getElementById('exportJsonBtn').addEventListener('click', ()=>{
+  if(!currentUser || currentUser.perfil !== 'administrador'){
+    toast('Apenas administradores podem exportar os dados.', 'error');
+    return;
+  }
+  // Observação: as fotos ficam guardadas no Storage do Supabase, então o
+  // backup aqui traz os dados e o caminho de cada foto (não a foto embutida).
+  const rows = allRecords.map(r => ({
+    id: r.id, data: r.data_registro, hora: r.hora_registro,
+    placa: r.placa, observacao: r.observacao, foto_path: r.foto_path,
+    registrado_por: r.registrado_por, criado_em: r.created_at
+  }));
+  downloadBlob(JSON.stringify(rows, null, 2), `backup-veiculos-${todayISO()}.json`, 'application/json');
+  toast('Backup exportado.', 'success');
+});
+
+// ---------- Usuarios (perfis) ----------
+const usersList = document.getElementById('usersList');
+
+// Passo 1: gera o e-mail interno a partir do "usuário" digitado
+const novoUsuarioInput = document.getElementById('novoUsuario');
+const geradoEmailInput = document.getElementById('geradoEmail');
+novoUsuarioInput.addEventListener('input', ()=>{
+  const usuario = novoUsuarioInput.value.trim().toLowerCase().replace(/\s+/g,'.');
+  geradoEmailInput.value = usuario ? `${usuario}@${EMAIL_DOMAIN}` : '';
+});
+document.getElementById('copiarEmailBtn').addEventListener('click', async ()=>{
+  if(!geradoEmailInput.value) return;
+  try{
+    await navigator.clipboard.writeText(geradoEmailInput.value);
+    toast('E-mail copiado.', 'success');
+  }catch(e){
+    geradoEmailInput.select();
+    toast('Selecione e copie manualmente (Ctrl+C).', 'error');
+  }
+});
+
+document.getElementById('addUserBtn').addEventListener('click', async ()=>{
+  const errEl = document.getElementById('addUserError');
+  errEl.style.display = 'none';
+
+  const usuario = novoUsuarioInput.value.trim().toLowerCase().replace(/\s+/g,'.');
+  const uid = document.getElementById('novoUid').value.trim();
+  const nome = document.getElementById('novoNome').value.trim();
+  const whatsapp = document.getElementById('novoWhatsapp').value.trim();
+  const perfil = document.getElementById('novoPerfil').value;
+
+  if(!usuario || !uid || !nome){
+    showLoginError(errEl, 'Preencha usuário, User UID e nome.');
+    return;
+  }
+
+  const { error } = await sb.from('profiles').insert({
+    id: uid, nome, usuario, whatsapp, perfil, ativo: true
+  });
+
+  if(error){
+    console.error(error);
+    if(error.code === '23505'){ showLoginError(errEl, 'Este usuário ou UID já está cadastrado.'); }
+    else if(error.code === '23503'){ showLoginError(errEl, 'Este User UID não existe no Supabase. Confira se foi criado e copiado corretamente.'); }
+    else { showLoginError(errEl, 'Erro ao cadastrar. Confira os dados e tente novamente.'); }
+    return;
+  }
+
+  document.getElementById('novoUsuario').value = '';
+  document.getElementById('geradoEmail').value = '';
+  document.getElementById('novoUid').value = '';
+  document.getElementById('novoNome').value = '';
+  document.getElementById('novoWhatsapp').value = '';
+  document.getElementById('novoPerfil').value = 'operacional';
+
+  toast('Perfil cadastrado. A pessoa já pode entrar no sistema.', 'success');
+  renderUsersList();
+});
+
+async function renderUsersList(){
+  const { data, error } = await sb.from('profiles').select('*').order('created_at');
+  if(error){ console.error(error); toast('Erro ao carregar usuários.', 'error'); return; }
+  allUsers = data || [];
+
+  usersList.innerHTML = '';
+  allUsers.forEach(u=>{
+    const ativo = u.ativo !== false;
+    const div = document.createElement('div');
+    div.className = 'user-card';
+    div.innerHTML = `
+      <div>
+        <div class="u-name">${escapeHtml(u.nome)} <span style="color:var(--slate-soft);font-weight:400;">· @${escapeHtml(u.usuario||'')}</span></div>
+        <div class="u-meta">
+          ${escapeHtml(u.whatsapp||'—')} ·
+          <span class="perfil-tag perfil-${u.perfil}">${u.perfil === 'administrador' ? 'Administrador' : 'Operacional'}</span> ·
+          <span class="status-badge ${ativo ? 'status-alta' : 'status-baixa'}">${ativo ? 'Ativo' : 'Inativo'}</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+        <button class="btn-ghost btn-small" data-edituser="${u.id}">Editar</button>
+        <button class="btn-ghost btn-small" data-toggleuser="${u.id}">${ativo ? 'Desativar' : 'Ativar'}</button>
+        <button class="btn-danger-text" data-deluser="${u.id}">Excluir</button>
+      </div>
+    `;
+    usersList.appendChild(div);
+  });
+  usersList.querySelectorAll('[data-deluser]').forEach(btn=>{
+    btn.addEventListener('click', ()=>deleteUser(btn.dataset.deluser));
+  });
+  usersList.querySelectorAll('[data-toggleuser]').forEach(btn=>{
+    btn.addEventListener('click', ()=>toggleUserActive(btn.dataset.toggleuser));
+  });
+  usersList.querySelectorAll('[data-edituser]').forEach(btn=>{
+    btn.addEventListener('click', ()=>openEditUser(btn.dataset.edituser));
+  });
+}
+
+function countActiveAdmins(users, excludingId){
+  return users.filter(u => u.perfil === 'administrador' && u.ativo !== false && u.id !== excludingId).length;
+}
+
+async function deleteUser(id){
+  const target = allUsers.find(u=>u.id===id);
+  if(!target) return;
+  if(target.perfil === 'administrador' && target.ativo !== false && countActiveAdmins(allUsers, id) === 0){
+    toast('Não é possível excluir o único administrador ativo do sistema.', 'error');
+    return;
+  }
+  if(!(await showConfirm(`Excluir o perfil de "${target.nome}"? O login dela no Supabase não é apagado automaticamente — remova também em Authentication → Users, se quiser bloquear o acesso por completo.`, 'Excluir usuário'))) return;
+
+  const { error } = await sb.from('profiles').delete().eq('id', id);
+  if(error){ console.error(error); toast('Erro ao excluir usuário.', 'error'); return; }
+
+  toast('Usuário excluído.', 'success');
+  renderUsersList();
+}
+
+async function toggleUserActive(id){
+  const target = allUsers.find(u=>u.id===id);
+  if(!target) return;
+  const isActive = target.ativo !== false;
+
+  if(isActive && target.perfil === 'administrador' && countActiveAdmins(allUsers, id) === 0){
+    toast('Não é possível desativar o único administrador ativo do sistema.', 'error');
+    return;
+  }
+
+  const action = isActive ? 'desativar' : 'ativar';
+  if(!(await showConfirm(`Deseja ${action} o usuário "${target.nome}"?`, isActive ? 'Desativar usuário' : 'Ativar usuário'))) return;
+
+  const { error } = await sb.from('profiles').update({ ativo: !isActive }).eq('id', id);
+  if(error){ console.error(error); toast('Erro ao atualizar usuário.', 'error'); return; }
+
+  toast(`Usuário ${!isActive ? 'ativado' : 'desativado'}.`, 'success');
+  renderUsersList();
+}
+
+// ---------- Edição de usuário ----------
+const editUserOverlay = document.getElementById('editUserOverlay');
+let editingUserId = null;
+
+function openEditUser(id){
+  const target = allUsers.find(u=>u.id===id);
+  if(!target) return;
+  editingUserId = id;
+  document.getElementById('editNome').value = target.nome || '';
+  document.getElementById('editUsuario').value = target.usuario || '';
+  document.getElementById('editWhatsapp').value = target.whatsapp || '';
+  document.getElementById('editPerfil').value = target.perfil || 'operacional';
+  document.getElementById('editUserError').style.display = 'none';
+  editUserOverlay.classList.add('active');
+}
+function closeEditUser(){
+  editUserOverlay.classList.remove('active');
+  editingUserId = null;
+}
+document.getElementById('editCancelBtn').addEventListener('click', closeEditUser);
+editUserOverlay.addEventListener('click', (e)=>{ if(e.target === editUserOverlay) closeEditUser(); });
+
+document.getElementById('editSaveBtn').addEventListener('click', async ()=>{
+  if(!editingUserId) return;
+  const errEl = document.getElementById('editUserError');
+  errEl.style.display = 'none';
+
+  const nome = document.getElementById('editNome').value.trim();
+  const whatsapp = document.getElementById('editWhatsapp').value.trim();
+  const perfil = document.getElementById('editPerfil').value;
+
+  if(!nome){ showLoginError(errEl, 'Preencha o nome.'); return; }
+
+  const target = allUsers.find(u=>u.id === editingUserId);
+  if(!target){ closeEditUser(); return; }
+
+  if(target.perfil === 'administrador' && perfil !== 'administrador' && target.ativo !== false && countActiveAdmins(allUsers, target.id) === 0){
+    showLoginError(errEl, 'Não é possível rebaixar o único administrador ativo do sistema.');
+    return;
+  }
+
+  const { error } = await sb.from('profiles').update({ nome, whatsapp, perfil }).eq('id', editingUserId);
+  if(error){ console.error(error); showLoginError(errEl, 'Erro ao salvar. Tente novamente.'); return; }
+
+  toast('Usuário atualizado.', 'success');
+  closeEditUser();
+  renderUsersList();
+});
+
+// ---------- Alterar minha própria senha ----------
+const changePasswordOverlay = document.getElementById('changePasswordOverlay');
+document.getElementById('changePasswordBtn').addEventListener('click', ()=>{
+  document.getElementById('novaSenhaPropria').value = '';
+  document.getElementById('confirmaSenhaPropria').value = '';
+  document.getElementById('changePasswordError').style.display = 'none';
+  changePasswordOverlay.classList.add('active');
+});
+document.getElementById('changePasswordCancelBtn').addEventListener('click', ()=>{
+  changePasswordOverlay.classList.remove('active');
+});
+changePasswordOverlay.addEventListener('click', (e)=>{ if(e.target === changePasswordOverlay) changePasswordOverlay.classList.remove('active'); });
+
+document.getElementById('changePasswordSaveBtn').addEventListener('click', async ()=>{
+  const errEl = document.getElementById('changePasswordError');
+  errEl.style.display = 'none';
+  const novaSenha = document.getElementById('novaSenhaPropria').value;
+  const confirma = document.getElementById('confirmaSenhaPropria').value;
+
+  if(!novaSenha || novaSenha.length < 6){ showLoginError(errEl, 'A senha deve ter pelo menos 6 caracteres.'); return; }
+  if(novaSenha !== confirma){ showLoginError(errEl, 'As senhas não coincidem.'); return; }
+
+  const { error } = await sb.auth.updateUser({ password: novaSenha });
+  if(error){ console.error(error); showLoginError(errEl, 'Erro ao alterar a senha. Tente novamente.'); return; }
+
+  toast('Senha alterada com sucesso.', 'success');
+  changePasswordOverlay.classList.remove('active');
+});
+
+async function renderAcessos(){
+  const { data, error } = await sb.from('acessos').select('*').order('login_at', { ascending: false });
+  const body = document.getElementById('acessosBody');
+  body.innerHTML = '';
+  if(error){ console.error(error); return; }
+  (data || []).forEach(a=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${escapeHtml(a.nome)}</td>
+      <td><span class="perfil-tag perfil-${a.perfil}">${a.perfil === 'administrador' ? 'Administrador' : 'Operacional'}</span></td>
+      <td>${formatDateTime(new Date(a.login_at).getTime())}</td>
+      <td>${a.logout_at ? formatDateTime(new Date(a.logout_at).getTime()) : 'Em andamento'}</td>
+    `;
+    body.appendChild(tr);
+  });
+}
+
+// ---------- Inicialização ----------
+init();
+</script>
+
+</body>
+</html>
