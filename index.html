@@ -483,6 +483,7 @@
       <button id="tabCapturaBtn" class="active">Registrar</button>
       <button id="tabBuscaBtn">Consultar</button>
       <button id="tabUsuariosBtn" style="display:none;">Usuários</button>
+      <button id="tabVeiculosBtn" style="display:none;">Veículos</button>
     </nav>
     <div class="header-right">
       <div class="user-pill">
@@ -539,6 +540,25 @@
                 <input type="time" id="timeInput" readonly>
               </div>
             </div>
+
+            <div id="motoristaEncontrado" style="display:none;background:var(--signal-green-bg);border-radius:10px;padding:12px 14px;">
+              <div style="font-size:12px;font-weight:700;color:var(--signal-green);text-transform:uppercase;letter-spacing:0.5px;">Veículo cadastrado</div>
+              <div style="font-size:15px;font-weight:700;margin-top:2px;" id="motoristaEncontradoNome"></div>
+              <div style="font-size:13px;color:var(--slate-soft);" id="motoristaEncontradoEmpresa"></div>
+            </div>
+
+            <div id="motoristaNovoBlock" style="display:none;" class="stack" style="gap:10px;">
+              <div class="hint">Essa placa não está no cadastro de veículos da empresa. Informe quem está dirigindo agora — essa informação vale só para este registro.</div>
+              <div>
+                <label class="field-label" for="motoristaNomeInput">Nome do motorista</label>
+                <input type="text" id="motoristaNomeInput" placeholder="Nome de quem está dirigindo">
+              </div>
+              <div>
+                <label class="field-label" for="motoristaEmpresaInput">Empresa</label>
+                <input type="text" id="motoristaEmpresaInput" placeholder="Empresa em que trabalha">
+              </div>
+            </div>
+
             <div>
               <label class="field-label" for="obsInput">Observação (opcional)</label>
               <textarea id="obsInput" placeholder="Ex: veículo autorizado, visitante, entrega, etc."></textarea>
@@ -589,6 +609,8 @@
               <th>Data</th>
               <th>Hora</th>
               <th>Placa</th>
+              <th>Motorista</th>
+              <th>Empresa</th>
               <th>Observação</th>
               <th>Foto</th>
               <th id="acoesHeader"></th>
@@ -668,6 +690,40 @@
       </div>
     </section>
 
+    <!-- VIEW: VEICULOS (somente administrador) -->
+    <section id="viewVeiculos" class="view">
+      <div class="card stack" style="max-width:520px;margin-bottom:20px;">
+        <h2 class="section-title">Cadastrar veículo</h2>
+        <div>
+          <label class="field-label" for="veiculoNome">Nome do proprietário</label>
+          <input type="text" id="veiculoNome" placeholder="Ex: João Silva">
+        </div>
+        <div>
+          <label class="field-label" for="veiculoPlaca">Placa</label>
+          <input type="text" id="veiculoPlaca" placeholder="ABC1D23" style="text-transform:uppercase;font-family:var(--font-mono);font-weight:700;letter-spacing:2px;">
+        </div>
+        <div>
+          <label class="field-label" for="veiculoMarca">Marca do veículo</label>
+          <input type="text" id="veiculoMarca" placeholder="Ex: Fiat, Volkswagen, Honda...">
+        </div>
+        <div>
+          <label class="field-label" for="veiculoEmpresa">Empresa</label>
+          <input type="text" id="veiculoEmpresa" placeholder="Empresa em que o motorista trabalha">
+        </div>
+        <div id="addVeiculoError" class="login-error" style="display:none;"></div>
+        <button class="btn btn-primary" id="addVeiculoBtn">Cadastrar veículo</button>
+      </div>
+
+      <h2 class="section-title">Veículos cadastrados</h2>
+      <div class="filters">
+        <div class="f-item">
+          <label class="field-label" for="searchVeiculo">Buscar por placa ou nome</label>
+          <input type="search" id="searchVeiculo" placeholder="Ex: ABC1D23 ou João">
+        </div>
+      </div>
+      <div id="veiculosList" class="stack" style="gap:10px;"></div>
+    </section>
+
   </main>
 </div>
 
@@ -711,6 +767,35 @@
       <div style="display:flex;gap:10px;">
         <button class="btn btn-ghost" id="changePasswordCancelBtn">Cancelar</button>
         <button class="btn btn-primary" id="changePasswordSaveBtn">Salvar nova senha</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="editVeiculoOverlay">
+  <div class="modal-box" style="max-width:440px;">
+    <div class="login-title">Editar veículo</div>
+    <div class="stack" style="margin-top:12px;">
+      <div>
+        <label class="field-label" for="editVeiculoNome">Nome do proprietário</label>
+        <input type="text" id="editVeiculoNome">
+      </div>
+      <div>
+        <label class="field-label" for="editVeiculoPlaca">Placa (não pode ser alterada aqui)</label>
+        <input type="text" id="editVeiculoPlaca" readonly style="font-family:var(--font-mono);font-weight:700;">
+      </div>
+      <div>
+        <label class="field-label" for="editVeiculoMarca">Marca do veículo</label>
+        <input type="text" id="editVeiculoMarca">
+      </div>
+      <div>
+        <label class="field-label" for="editVeiculoEmpresa">Empresa</label>
+        <input type="text" id="editVeiculoEmpresa">
+      </div>
+      <div id="editVeiculoError" class="login-error" style="display:none;"></div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-ghost" id="editVeiculoCancelBtn">Cancelar</button>
+        <button class="btn btn-primary" id="editVeiculoSaveBtn">Salvar alterações</button>
       </div>
     </div>
   </div>
@@ -966,6 +1051,7 @@ function showApp(){
 
   const isAdmin = currentUser.perfil === 'administrador';
   document.getElementById('tabUsuariosBtn').style.display = isAdmin ? 'inline-flex' : 'none';
+  document.getElementById('tabVeiculosBtn').style.display = isAdmin ? 'inline-flex' : 'none';
   document.getElementById('exportCsvBtn').style.display = isAdmin ? 'inline-flex' : 'none';
   document.getElementById('exportJsonBtn').style.display = isAdmin ? 'inline-flex' : 'none';
 
@@ -977,23 +1063,29 @@ function showApp(){
 const tabCapturaBtn = document.getElementById('tabCapturaBtn');
 const tabBuscaBtn = document.getElementById('tabBuscaBtn');
 const tabUsuariosBtn = document.getElementById('tabUsuariosBtn');
+const tabVeiculosBtn = document.getElementById('tabVeiculosBtn');
 const viewCaptura = document.getElementById('viewCaptura');
 const viewBusca = document.getElementById('viewBusca');
 const viewUsuarios = document.getElementById('viewUsuarios');
+const viewVeiculos = document.getElementById('viewVeiculos');
 
 tabCapturaBtn.addEventListener('click', ()=>switchTab('captura'));
 tabBuscaBtn.addEventListener('click', ()=>switchTab('busca'));
 tabUsuariosBtn.addEventListener('click', ()=>switchTab('usuarios'));
+tabVeiculosBtn.addEventListener('click', ()=>switchTab('veiculos'));
 
 function switchTab(tab){
   tabCapturaBtn.classList.toggle('active', tab==='captura');
   tabBuscaBtn.classList.toggle('active', tab==='busca');
   tabUsuariosBtn.classList.toggle('active', tab==='usuarios');
+  tabVeiculosBtn.classList.toggle('active', tab==='veiculos');
   viewCaptura.classList.toggle('active', tab==='captura');
   viewBusca.classList.toggle('active', tab==='busca');
   viewUsuarios.classList.toggle('active', tab==='usuarios');
+  viewVeiculos.classList.toggle('active', tab==='veiculos');
   if(tab === 'busca'){ loadAndRenderRecords(); }
   if(tab === 'usuarios'){ renderUsersList(); renderAcessos(); }
+  if(tab === 'veiculos'){ renderVeiculosList(); }
 }
 
 // ---------- Sub-tabs Usuarios ----------
@@ -1024,6 +1116,38 @@ const plateInput = document.getElementById('plateInput');
 const dateInput = document.getElementById('dateInput');
 const timeInput = document.getElementById('timeInput');
 const obsInput = document.getElementById('obsInput');
+const motoristaEncontrado = document.getElementById('motoristaEncontrado');
+const motoristaEncontradoNome = document.getElementById('motoristaEncontradoNome');
+const motoristaEncontradoEmpresa = document.getElementById('motoristaEncontradoEmpresa');
+const motoristaNovoBlock = document.getElementById('motoristaNovoBlock');
+const motoristaNomeInput = document.getElementById('motoristaNomeInput');
+const motoristaEmpresaInput = document.getElementById('motoristaEmpresaInput');
+let matchedVeiculo = null;
+
+async function checkVeiculoCadastrado(placa){
+  const placaLimpa = (placa || '').trim().toUpperCase();
+  if(!placaLimpa){
+    matchedVeiculo = null;
+    motoristaEncontrado.style.display = 'none';
+    motoristaNovoBlock.style.display = 'none';
+    return;
+  }
+  const { data, error } = await sb.from('veiculos').select('*').eq('placa', placaLimpa).maybeSingle();
+  if(error){ console.error(error); }
+  matchedVeiculo = (!error && data) ? data : null;
+
+  if(matchedVeiculo){
+    motoristaEncontradoNome.textContent = matchedVeiculo.nome;
+    motoristaEncontradoEmpresa.textContent = matchedVeiculo.empresa ? `Empresa: ${matchedVeiculo.empresa}` : '';
+    motoristaEncontrado.style.display = 'block';
+    motoristaNovoBlock.style.display = 'none';
+  } else {
+    motoristaEncontrado.style.display = 'none';
+    motoristaNovoBlock.style.display = 'flex';
+    motoristaNomeInput.value = '';
+    motoristaEmpresaInput.value = '';
+  }
+}
 
 fileInput.addEventListener('change', async (e)=>{
   const file = e.target.files[0];
@@ -1044,6 +1168,9 @@ fileInput.addEventListener('change', async (e)=>{
     plateChipText.textContent = '— — —';
     plateChipPreview.classList.add('empty');
     confBadge.innerHTML = '';
+    matchedVeiculo = null;
+    motoristaEncontrado.style.display = 'none';
+    motoristaNovoBlock.style.display = 'none';
 
     captureLabel.innerHTML = '<div class="spinner"></div> Analisando placa...';
     captureLabel.style.pointerEvents = 'none';
@@ -1067,6 +1194,8 @@ fileInput.addEventListener('change', async (e)=>{
 
       recognizeBlock.style.display = 'block';
       actionBlock.style.display = 'flex';
+
+      await checkVeiculoCadastrado(result.placa);
 
       if(!result.placa){
         toast('Não consegui ler a placa automaticamente. Digite manualmente.', 'error');
@@ -1095,6 +1224,9 @@ plateInput.addEventListener('input', ()=>{
   plateInput.value = plateInput.value.toUpperCase();
   updatePlateChip(plateInput.value);
 });
+// se a pessoa corrigir a placa digitada à mão, verifica de novo o cadastro
+plateInput.addEventListener('blur', ()=>{ checkVeiculoCadastrado(plateInput.value); });
+
 
 function setConfidenceBadge(conf){
   const map = {
@@ -1146,6 +1278,11 @@ function resetCaptureForm(){
   captureLabel.innerHTML = '📷 Tirar foto da placa';
   fileInput.value = '';
   obsInput.value = '';
+  matchedVeiculo = null;
+  motoristaEncontrado.style.display = 'none';
+  motoristaNovoBlock.style.display = 'none';
+  motoristaNomeInput.value = '';
+  motoristaEmpresaInput.value = '';
 }
 
 document.getElementById('saveBtn').addEventListener('click', async ()=>{
@@ -1156,6 +1293,19 @@ document.getElementById('saveBtn').addEventListener('click', async ()=>{
 
   if(!placa){ toast('Digite a placa antes de salvar.', 'error'); return; }
   if(!capturedPhotoForStorage){ toast('Nenhuma foto capturada.', 'error'); return; }
+
+  let motoristaNome, motoristaEmpresa;
+  if(matchedVeiculo){
+    motoristaNome = matchedVeiculo.nome;
+    motoristaEmpresa = matchedVeiculo.empresa;
+  } else {
+    motoristaNome = motoristaNomeInput.value.trim();
+    motoristaEmpresa = motoristaEmpresaInput.value.trim();
+    if(!motoristaNome || !motoristaEmpresa){
+      toast('Informe o nome do motorista e a empresa antes de salvar.', 'error');
+      return;
+    }
+  }
 
   const saveBtn = document.getElementById('saveBtn');
   saveBtn.disabled = true;
@@ -1173,6 +1323,8 @@ document.getElementById('saveBtn').addEventListener('click', async ()=>{
       data_registro: date,
       hora_registro: time,
       placa, observacao: obs,
+      motorista_nome: motoristaNome,
+      motorista_empresa: motoristaEmpresa,
       foto_path: path,
       registrado_por: currentUser.id
     });
@@ -1243,6 +1395,8 @@ function renderTable(){
           <div class="plate-text">${r.placa}</div>
         </div>
       </td>
+      <td>${escapeHtml(r.motorista_nome||'—')}</td>
+      <td>${escapeHtml(r.motorista_empresa||'—')}</td>
       <td><span class="obs-text">${escapeHtml(r.observacao||'—')}</span></td>
       <td>${r.photoUrl ? `<img class="thumb" src="${r.photoUrl}" data-id="${r.id}">` : '—'}</td>
       <td>${isAdmin ? `<button class="btn-danger-text" data-del="${r.id}">Excluir</button>` : ''}</td>
@@ -1317,10 +1471,12 @@ document.getElementById('exportCsvBtn').addEventListener('click', ()=>{
     toast('Apenas administradores podem exportar os dados.', 'error');
     return;
   }
-  let csv = 'Data;Hora;Placa;Observacao\r\n';
+  let csv = 'Data;Hora;Placa;Motorista;Empresa;Observacao\r\n';
   allRecords.forEach(r=>{
     const obsClean = (r.observacao||'').replace(/;/g,',');
-    csv += `${formatDateBR(r.data_registro)};${(r.hora_registro||'').slice(0,5)};${r.placa};${obsClean}\r\n`;
+    const nomeClean = (r.motorista_nome||'').replace(/;/g,',');
+    const empresaClean = (r.motorista_empresa||'').replace(/;/g,',');
+    csv += `${formatDateBR(r.data_registro)};${(r.hora_registro||'').slice(0,5)};${r.placa};${nomeClean};${empresaClean};${obsClean}\r\n`;
   });
   downloadBlob('\ufeff'+csv, `registros-veiculos-${todayISO()}.csv`, 'text/csv;charset=utf-8');
   toast('CSV exportado.', 'success');
@@ -1335,7 +1491,8 @@ document.getElementById('exportJsonBtn').addEventListener('click', ()=>{
   // backup aqui traz os dados e o caminho de cada foto (não a foto embutida).
   const rows = allRecords.map(r => ({
     id: r.id, data: r.data_registro, hora: r.hora_registro,
-    placa: r.placa, observacao: r.observacao, foto_path: r.foto_path,
+    placa: r.placa, motorista_nome: r.motorista_nome, motorista_empresa: r.motorista_empresa,
+    observacao: r.observacao, foto_path: r.foto_path,
     registrado_por: r.registrado_por, criado_em: r.created_at
   }));
   downloadBlob(JSON.stringify(rows, null, 2), `backup-veiculos-${todayISO()}.json`, 'application/json');
@@ -1573,6 +1730,136 @@ async function renderAcessos(){
     body.appendChild(tr);
   });
 }
+
+// ---------- Veículos (cadastro) ----------
+let allVeiculos = [];
+const veiculosList = document.getElementById('veiculosList');
+const searchVeiculo = document.getElementById('searchVeiculo');
+
+document.getElementById('addVeiculoBtn').addEventListener('click', async ()=>{
+  const errEl = document.getElementById('addVeiculoError');
+  errEl.style.display = 'none';
+
+  const nome = document.getElementById('veiculoNome').value.trim();
+  const placa = document.getElementById('veiculoPlaca').value.trim().toUpperCase();
+  const marca = document.getElementById('veiculoMarca').value.trim();
+  const empresa = document.getElementById('veiculoEmpresa').value.trim();
+
+  if(!nome || !placa || !empresa){
+    showLoginError(errEl, 'Preencha ao menos nome, placa e empresa.');
+    return;
+  }
+
+  const { error } = await sb.from('veiculos').insert({ nome, placa, marca, empresa });
+  if(error){
+    console.error(error);
+    if(error.code === '23505'){ showLoginError(errEl, 'Já existe um veículo cadastrado com essa placa.'); }
+    else{ showLoginError(errEl, 'Erro ao cadastrar. Tente novamente.'); }
+    return;
+  }
+
+  document.getElementById('veiculoNome').value = '';
+  document.getElementById('veiculoPlaca').value = '';
+  document.getElementById('veiculoMarca').value = '';
+  document.getElementById('veiculoEmpresa').value = '';
+
+  toast('Veículo cadastrado.', 'success');
+  renderVeiculosList();
+});
+
+async function renderVeiculosList(){
+  const { data, error } = await sb.from('veiculos').select('*').order('created_at', { ascending: false });
+  if(error){ console.error(error); toast('Erro ao carregar veículos.', 'error'); return; }
+  allVeiculos = data || [];
+  renderVeiculosFiltered();
+}
+
+function renderVeiculosFiltered(){
+  const q = searchVeiculo.value.trim().toUpperCase();
+  const filtered = allVeiculos.filter(v=>{
+    if(!q) return true;
+    return v.placa.toUpperCase().includes(q) || (v.nome||'').toUpperCase().includes(q);
+  });
+
+  veiculosList.innerHTML = '';
+  filtered.forEach(v=>{
+    const div = document.createElement('div');
+    div.className = 'user-card';
+    div.innerHTML = `
+      <div>
+        <div class="u-name">${escapeHtml(v.nome)}</div>
+        <div class="u-meta">
+          <span class="plate-chip plate-chip-sm" style="vertical-align:middle;"><span class="plate-text" style="padding:0 8px;">${escapeHtml(v.placa)}</span></span>
+          ${escapeHtml(v.marca||'sem marca informada')} · ${escapeHtml(v.empresa||'—')}
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+        <button class="btn-ghost btn-small" data-editveiculo="${v.id}">Editar</button>
+        <button class="btn-danger-text" data-delveiculo="${v.id}">Excluir</button>
+      </div>
+    `;
+    veiculosList.appendChild(div);
+  });
+  veiculosList.querySelectorAll('[data-editveiculo]').forEach(btn=>{
+    btn.addEventListener('click', ()=>openEditVeiculo(btn.dataset.editveiculo));
+  });
+  veiculosList.querySelectorAll('[data-delveiculo]').forEach(btn=>{
+    btn.addEventListener('click', ()=>deleteVeiculo(btn.dataset.delveiculo));
+  });
+}
+searchVeiculo.addEventListener('input', renderVeiculosFiltered);
+
+async function deleteVeiculo(id){
+  const target = allVeiculos.find(v=>v.id===id);
+  if(!target) return;
+  if(!(await showConfirm(`Excluir o veículo de placa "${target.placa}"? Isso não afeta os registros já salvos, só remove o cadastro para futuras buscas.`, 'Excluir veículo'))) return;
+
+  const { error } = await sb.from('veiculos').delete().eq('id', id);
+  if(error){ console.error(error); toast('Erro ao excluir veículo.', 'error'); return; }
+
+  toast('Veículo excluído.', 'success');
+  renderVeiculosList();
+}
+
+const editVeiculoOverlay = document.getElementById('editVeiculoOverlay');
+let editingVeiculoId = null;
+
+function openEditVeiculo(id){
+  const target = allVeiculos.find(v=>v.id===id);
+  if(!target) return;
+  editingVeiculoId = id;
+  document.getElementById('editVeiculoNome').value = target.nome || '';
+  document.getElementById('editVeiculoPlaca').value = target.placa || '';
+  document.getElementById('editVeiculoMarca').value = target.marca || '';
+  document.getElementById('editVeiculoEmpresa').value = target.empresa || '';
+  document.getElementById('editVeiculoError').style.display = 'none';
+  editVeiculoOverlay.classList.add('active');
+}
+function closeEditVeiculo(){
+  editVeiculoOverlay.classList.remove('active');
+  editingVeiculoId = null;
+}
+document.getElementById('editVeiculoCancelBtn').addEventListener('click', closeEditVeiculo);
+editVeiculoOverlay.addEventListener('click', (e)=>{ if(e.target === editVeiculoOverlay) closeEditVeiculo(); });
+
+document.getElementById('editVeiculoSaveBtn').addEventListener('click', async ()=>{
+  if(!editingVeiculoId) return;
+  const errEl = document.getElementById('editVeiculoError');
+  errEl.style.display = 'none';
+
+  const nome = document.getElementById('editVeiculoNome').value.trim();
+  const marca = document.getElementById('editVeiculoMarca').value.trim();
+  const empresa = document.getElementById('editVeiculoEmpresa').value.trim();
+
+  if(!nome || !empresa){ showLoginError(errEl, 'Preencha nome e empresa.'); return; }
+
+  const { error } = await sb.from('veiculos').update({ nome, marca, empresa }).eq('id', editingVeiculoId);
+  if(error){ console.error(error); showLoginError(errEl, 'Erro ao salvar. Tente novamente.'); return; }
+
+  toast('Veículo atualizado.', 'success');
+  closeEditVeiculo();
+  renderVeiculosList();
+});
 
 // ---------- Inicialização ----------
 init();
