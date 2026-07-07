@@ -606,8 +606,6 @@
       </div>
 
       <div class="export-bar">
-        <button class="btn btn-secondary btn-small" id="exportCsvBtn">⬇ Exportar CSV (planilha)</button>
-        <button class="btn btn-ghost btn-small" id="exportJsonBtn">⬇ Exportar backup completo (com fotos)</button>
         <button class="btn btn-ghost btn-small" id="refreshBtn">↻ Atualizar</button>
       </div>
 
@@ -663,6 +661,11 @@
         </div>
         <button class="btn btn-ghost btn-small" id="resumoClearFiltersBtn">Limpar</button>
         <button class="btn btn-ghost btn-small" id="resumoRefreshBtn">↻ Atualizar</button>
+      </div>
+
+      <div class="export-bar">
+        <button class="btn btn-secondary btn-small" id="resumoExportExcelBtn">⬇ Exportar Excel</button>
+        <button class="btn btn-ghost btn-small" id="resumoExportPdfBtn">🖨 Exportar PDF</button>
       </div>
 
       <div class="count-pill" id="resumoCountPill"></div>
@@ -903,6 +906,7 @@
 
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 // ==================================================================
 // CONFIGURAÇÃO DO SUPABASE — troque as duas linhas abaixo pelos
@@ -1118,8 +1122,6 @@ function showApp(){
   document.getElementById('tabUsuariosBtn').style.display = isAdmin ? 'inline-flex' : 'none';
   document.getElementById('tabVeiculosBtn').style.display = isAdmin ? 'inline-flex' : 'none';
   document.getElementById('tabResumoBtn').style.display = isAdmin ? 'inline-flex' : 'none';
-  document.getElementById('exportCsvBtn').style.display = isAdmin ? 'inline-flex' : 'none';
-  document.getElementById('exportJsonBtn').style.display = isAdmin ? 'inline-flex' : 'none';
 
   dateInput.value = todayISO();
   timeInput.value = nowHM();
@@ -1466,10 +1468,9 @@ const searchTo = document.getElementById('searchTo');
 
 async function loadAndRenderRecords(){
   countPill.textContent = 'Carregando...';
-  // A aba Consultar mostra só as entradas. Para o histórico completo com
-  // entrada + saída e tempo de permanência, veja a aba "Resumo".
-  // Buscamos TODOS os registros (não só Entrada) para descobrir, por placa,
-  // se aquela entrada específica já tem uma saída depois dela ou não.
+  // A aba Consultar mostra só os veículos que estão NO LOCAL agora.
+  // Assim que uma saída é registrada, o veículo sai desta lista e passa a
+  // aparecer completo (entrada + saída + permanência) na aba "Resumo".
   const { data, error } = await sb.from('registros').select('*').order('created_at', { ascending: false });
   if(error){ console.error(error); toast('Erro ao carregar os registros.', 'error'); allRecords = []; renderTable(); return; }
 
@@ -1483,11 +1484,9 @@ async function loadAndRenderRecords(){
     }
   });
 
-  allRecords = todos.filter(r => r.status === 'Entrada');
-  allRecords.forEach(r=>{
-    const maisRecente = maisRecentePorPlaca[r.placa];
-    r.permanenceStatus = (maisRecente && maisRecente.id === r.id) ? 'No local' : 'Saiu';
-  });
+  allRecords = todos.filter(r =>
+    r.status === 'Entrada' && maisRecentePorPlaca[r.placa] && maisRecentePorPlaca[r.placa].id === r.id
+  );
 
   // gera um link temporário (1 hora) para cada foto, já que o balde é privado
   await Promise.all(allRecords.map(async (r)=>{
@@ -1529,7 +1528,7 @@ function renderTable(){
         </div>
       </td>
       <td>
-        <span class="status-badge ${r.permanenceStatus === 'No local' ? 'status-alta' : 'status-neutro'}">${r.permanenceStatus}</span>
+        <span class="status-badge status-alta">No local</span>
       </td>
       <td>${escapeHtml(r.motorista_nome||'—')}</td>
       <td>${escapeHtml(r.motorista_empresa||'—')}</td>
@@ -1602,41 +1601,6 @@ function downloadBlob(content, filename, mime){
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
-
-document.getElementById('exportCsvBtn').addEventListener('click', ()=>{
-  if(!currentUser || currentUser.perfil !== 'administrador'){
-    toast('Apenas administradores podem exportar os dados.', 'error');
-    return;
-  }
-  let csv = 'Data;Hora;Placa;Motorista;Empresa;AutorizadoPor;Observacao\r\n';
-  allRecords.forEach(r=>{
-    const obsClean = (r.observacao||'').replace(/;/g,',');
-    const nomeClean = (r.motorista_nome||'').replace(/;/g,',');
-    const empresaClean = (r.motorista_empresa||'').replace(/;/g,',');
-    const autorizadoClean = (r.autorizado_por||'').replace(/;/g,',');
-    csv += `${formatDateBR(r.data_registro)};${(r.hora_registro||'').slice(0,5)};${r.placa};${nomeClean};${empresaClean};${autorizadoClean};${obsClean}\r\n`;
-  });
-  downloadBlob('\ufeff'+csv, `registros-veiculos-${todayISO()}.csv`, 'text/csv;charset=utf-8');
-  toast('CSV exportado.', 'success');
-});
-
-document.getElementById('exportJsonBtn').addEventListener('click', ()=>{
-  if(!currentUser || currentUser.perfil !== 'administrador'){
-    toast('Apenas administradores podem exportar os dados.', 'error');
-    return;
-  }
-  // Observação: as fotos ficam guardadas no Storage do Supabase, então o
-  // backup aqui traz os dados e o caminho de cada foto (não a foto embutida).
-  const rows = allRecords.map(r => ({
-    id: r.id, data: r.data_registro, hora: r.hora_registro,
-    placa: r.placa, status: r.status, motorista_nome: r.motorista_nome, motorista_empresa: r.motorista_empresa,
-    autorizado_por: r.autorizado_por,
-    observacao: r.observacao, foto_path: r.foto_path,
-    registrado_por: r.registrado_por, criado_em: r.created_at
-  }));
-  downloadBlob(JSON.stringify(rows, null, 2), `backup-veiculos-${todayISO()}.json`, 'application/json');
-  toast('Backup exportado.', 'success');
-});
 
 // ---------- Usuarios (perfis) ----------
 const usersList = document.getElementById('usersList');
@@ -1880,6 +1844,7 @@ const resumoSearchAutorizado = document.getElementById('resumoSearchAutorizado')
 const resumoSearchFrom = document.getElementById('resumoSearchFrom');
 const resumoSearchTo = document.getElementById('resumoSearchTo');
 let allVisitas = [];
+let resumoFiltradoAtual = [];
 
 function combinarDataHora(data, hora){
   if(!data || !hora) return null;
@@ -1971,6 +1936,8 @@ function renderResumo(){
     return true;
   });
 
+  resumoFiltradoAtual = filtered;
+
   resumoCountPill.textContent = `${filtered.length} movimenta${filtered.length===1?'ção':'ções'} encontrada${filtered.length===1?'':'s'}`;
   resumoBody.innerHTML = '';
   resumoEmptyState.style.display = filtered.length ? 'none' : 'block';
@@ -2018,6 +1985,81 @@ document.getElementById('resumoClearFiltersBtn').addEventListener('click', ()=>{
   renderResumo();
 });
 document.getElementById('resumoRefreshBtn').addEventListener('click', loadAndRenderResumo);
+
+document.getElementById('resumoExportExcelBtn').addEventListener('click', ()=>{
+  if(!resumoFiltradoAtual.length){ toast('Não há dados para exportar.', 'error'); return; }
+
+  const linhas = resumoFiltradoAtual.map(v=>({
+    'Placa': v.placa,
+    'Motorista': v.motorista_nome || '',
+    'Empresa': v.motorista_empresa || '',
+    'Autorizado por': v.autorizado_por || '',
+    'Entrada': `${formatDateBR(v.entrada.data_registro)} ${(v.entrada.hora_registro||'').slice(0,5)}`,
+    'Saída': v.saida ? `${formatDateBR(v.saida.data_registro)} ${(v.saida.hora_registro||'').slice(0,5)}` : (v.emAndamento ? 'No local' : ''),
+    'Permanência': v.emAndamento ? 'No local (ainda não saiu)' : formatarPermanencia(v.permanenciaMs)
+  }));
+
+  const planilha = XLSX.utils.json_to_sheet(linhas);
+  planilha['!cols'] = [{wch:12},{wch:22},{wch:22},{wch:22},{wch:18},{wch:18},{wch:20}];
+  const livro = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(livro, planilha, 'Resumo');
+  XLSX.writeFile(livro, `resumo-entradas-saidas-${todayISO()}.xlsx`);
+  toast('Excel exportado.', 'success');
+});
+
+document.getElementById('resumoExportPdfBtn').addEventListener('click', ()=>{
+  if(!resumoFiltradoAtual.length){ toast('Não há dados para exportar.', 'error'); return; }
+
+  const linhasHtml = resumoFiltradoAtual.map(v=>{
+    const entradaTxt = `${formatDateBR(v.entrada.data_registro)} ${(v.entrada.hora_registro||'').slice(0,5)}`;
+    const saidaTxt = v.saida ? `${formatDateBR(v.saida.data_registro)} ${(v.saida.hora_registro||'').slice(0,5)}` : '—';
+    const permanenciaTxt = v.emAndamento ? 'No local' : formatarPermanencia(v.permanenciaMs);
+    return `<tr>
+      <td>${escapeHtml(v.placa)}</td>
+      <td>${escapeHtml(v.motorista_nome||'—')}</td>
+      <td>${escapeHtml(v.motorista_empresa||'—')}</td>
+      <td>${escapeHtml(v.autorizado_por||'—')}</td>
+      <td>${entradaTxt}</td>
+      <td>${saidaTxt}</td>
+      <td>${permanenciaTxt}</td>
+    </tr>`;
+  }).join('');
+
+  const janela = window.open('', '_blank');
+  janela.document.write(`
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8">
+      <title>Resumo de entradas e saídas</title>
+      <style>
+        body{ font-family: Arial, Helvetica, sans-serif; padding: 24px; color:#222; }
+        h1{ font-size:18px; margin-bottom:4px; }
+        p.sub{ color:#666; font-size:12px; margin-top:0; margin-bottom:20px; }
+        table{ width:100%; border-collapse: collapse; font-size:12px; }
+        th, td{ border:1px solid #ccc; padding:6px 8px; text-align:left; }
+        th{ background:#f0f0f0; }
+      </style>
+    </head>
+    <body>
+      <h1>Resumo de entradas e saídas</h1>
+      <p class="sub">Gerado em ${new Date().toLocaleString('pt-BR')} · ${resumoFiltradoAtual.length} movimentação(ões)</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Placa</th><th>Motorista</th><th>Empresa</th><th>Autorizado por</th>
+            <th>Entrada</th><th>Saída</th><th>Permanência</th>
+          </tr>
+        </thead>
+        <tbody>${linhasHtml}</tbody>
+      </table>
+    </body>
+    </html>
+  `);
+  janela.document.close();
+  janela.focus();
+  setTimeout(()=>{ janela.print(); }, 300);
+});
 
 // ---------- Veículos (cadastro) ----------
 let allVeiculos = [];
