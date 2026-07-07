@@ -254,6 +254,7 @@
   .status-alta{background:var(--signal-green-bg);color:var(--signal-green);}
   .status-media{background:var(--signal-amber-bg);color:var(--signal-amber);}
   .status-baixa{background:var(--signal-red-bg);color:var(--signal-red);}
+  .status-neutro{background:#EEF0F2;color:var(--slate-soft);}
 
   .divider{height:1px;background:var(--border);margin:4px 0;}
 
@@ -482,7 +483,7 @@
     <nav class="tabs">
       <button id="tabCapturaBtn" class="active">Registrar</button>
       <button id="tabBuscaBtn">Consultar</button>
-      <button id="tabResumoBtn">Resumo de entradas e saídas</button>
+      <button id="tabResumoBtn" style="display:none;">Resumo</button>
       <button id="tabUsuariosBtn" style="display:none;">Usuários</button>
       <button id="tabVeiculosBtn" style="display:none;">Veículos</button>
     </nav>
@@ -619,6 +620,7 @@
               <th>Data</th>
               <th>Hora</th>
               <th>Placa</th>
+              <th>Permanência</th>
               <th>Motorista</th>
               <th>Empresa</th>
               <th>Autorizado por</th>
@@ -636,12 +638,20 @@
       </div>
     </section>
 
-    <!-- VIEW: RESUMO DE ENTRADAS E SAÍDAS (visível para todos os perfis) -->
+    <!-- VIEW: RESUMO (somente administrador) -->
     <section id="viewResumo" class="view">
       <div class="filters">
         <div class="f-item">
           <label class="field-label" for="resumoSearchPlaca">Buscar placa</label>
           <input type="search" id="resumoSearchPlaca" placeholder="Ex: ABC1D23">
+        </div>
+        <div class="f-item">
+          <label class="field-label" for="resumoSearchMotorista">Buscar motorista</label>
+          <input type="search" id="resumoSearchMotorista" placeholder="Nome do motorista">
+        </div>
+        <div class="f-item">
+          <label class="field-label" for="resumoSearchAutorizado">Buscar autorizado por</label>
+          <input type="search" id="resumoSearchAutorizado" placeholder="Quem autorizou">
         </div>
         <div class="f-item">
           <label class="field-label" for="resumoSearchFrom">De</label>
@@ -664,6 +674,7 @@
               <th>Placa</th>
               <th>Motorista</th>
               <th>Empresa</th>
+              <th>Autorizado por</th>
               <th>Entrada</th>
               <th>Saída</th>
               <th>Permanência</th>
@@ -1106,6 +1117,7 @@ function showApp(){
   const isAdmin = currentUser.perfil === 'administrador';
   document.getElementById('tabUsuariosBtn').style.display = isAdmin ? 'inline-flex' : 'none';
   document.getElementById('tabVeiculosBtn').style.display = isAdmin ? 'inline-flex' : 'none';
+  document.getElementById('tabResumoBtn').style.display = isAdmin ? 'inline-flex' : 'none';
   document.getElementById('exportCsvBtn').style.display = isAdmin ? 'inline-flex' : 'none';
   document.getElementById('exportJsonBtn').style.display = isAdmin ? 'inline-flex' : 'none';
 
@@ -1456,10 +1468,26 @@ async function loadAndRenderRecords(){
   countPill.textContent = 'Carregando...';
   // A aba Consultar mostra só as entradas. Para o histórico completo com
   // entrada + saída e tempo de permanência, veja a aba "Resumo".
-  const { data, error } = await sb.from('registros').select('*').eq('status', 'Entrada').order('created_at', { ascending: false });
+  // Buscamos TODOS os registros (não só Entrada) para descobrir, por placa,
+  // se aquela entrada específica já tem uma saída depois dela ou não.
+  const { data, error } = await sb.from('registros').select('*').order('created_at', { ascending: false });
   if(error){ console.error(error); toast('Erro ao carregar os registros.', 'error'); allRecords = []; renderTable(); return; }
 
-  allRecords = data || [];
+  const todos = data || [];
+
+  const maisRecentePorPlaca = {};
+  todos.forEach(r=>{
+    const atual = maisRecentePorPlaca[r.placa];
+    if(!atual || new Date(r.created_at) > new Date(atual.created_at)){
+      maisRecentePorPlaca[r.placa] = r;
+    }
+  });
+
+  allRecords = todos.filter(r => r.status === 'Entrada');
+  allRecords.forEach(r=>{
+    const maisRecente = maisRecentePorPlaca[r.placa];
+    r.permanenceStatus = (maisRecente && maisRecente.id === r.id) ? 'No local' : 'Saiu';
+  });
 
   // gera um link temporário (1 hora) para cada foto, já que o balde é privado
   await Promise.all(allRecords.map(async (r)=>{
@@ -1499,6 +1527,9 @@ function renderTable(){
           <div class="plate-badge"><span class="flag">🇧🇷</span>BR</div>
           <div class="plate-text">${r.placa}</div>
         </div>
+      </td>
+      <td>
+        <span class="status-badge ${r.permanenceStatus === 'No local' ? 'status-alta' : 'status-neutro'}">${r.permanenceStatus}</span>
       </td>
       <td>${escapeHtml(r.motorista_nome||'—')}</td>
       <td>${escapeHtml(r.motorista_empresa||'—')}</td>
@@ -1839,11 +1870,13 @@ async function renderAcessos(){
   });
 }
 
-// ---------- Resumo de entradas e saídas ----------
+// ---------- Resumo ----------
 const resumoBody = document.getElementById('resumoBody');
 const resumoEmptyState = document.getElementById('resumoEmptyState');
 const resumoCountPill = document.getElementById('resumoCountPill');
 const resumoSearchPlaca = document.getElementById('resumoSearchPlaca');
+const resumoSearchMotorista = document.getElementById('resumoSearchMotorista');
+const resumoSearchAutorizado = document.getElementById('resumoSearchAutorizado');
 const resumoSearchFrom = document.getElementById('resumoSearchFrom');
 const resumoSearchTo = document.getElementById('resumoSearchTo');
 let allVisitas = [];
@@ -1902,6 +1935,7 @@ async function loadAndRenderResumo(){
           placa: atual.placa,
           motorista_nome: atual.motorista_nome,
           motorista_empresa: atual.motorista_empresa,
+          autorizado_por: atual.autorizado_por,
           entrada: atual,
           saida: temSaida ? proximo : null,
           permanenciaMs: saidaTs ? (saidaTs - entradaTs) : null,
@@ -1923,11 +1957,15 @@ async function loadAndRenderResumo(){
 
 function renderResumo(){
   const q = resumoSearchPlaca.value.trim().toUpperCase().replace(/[\s-]/g,'');
+  const qMotorista = resumoSearchMotorista.value.trim().toUpperCase();
+  const qAutorizado = resumoSearchAutorizado.value.trim().toUpperCase();
   const from = resumoSearchFrom.value;
   const to = resumoSearchTo.value;
 
   const filtered = allVisitas.filter(v=>{
     if(q && !v.placa.replace(/[\s-]/g,'').includes(q)) return false;
+    if(qMotorista && !(v.motorista_nome||'').toUpperCase().includes(qMotorista)) return false;
+    if(qAutorizado && !(v.autorizado_por||'').toUpperCase().includes(qAutorizado)) return false;
     if(from && v.entrada.data_registro < from) return false;
     if(to && v.entrada.data_registro > to) return false;
     return true;
@@ -1954,6 +1992,7 @@ function renderResumo(){
       </td>
       <td>${escapeHtml(v.motorista_nome||'—')}</td>
       <td>${escapeHtml(v.motorista_empresa||'—')}</td>
+      <td>${escapeHtml(v.autorizado_por||'—')}</td>
       <td>${entradaTxt}</td>
       <td>${saidaTxt}</td>
       <td>${permanenciaTxt}</td>
@@ -1972,9 +2011,10 @@ function renderResumo(){
   });
 }
 
-[resumoSearchPlaca, resumoSearchFrom, resumoSearchTo].forEach(el=> el.addEventListener('input', renderResumo));
+[resumoSearchPlaca, resumoSearchMotorista, resumoSearchAutorizado, resumoSearchFrom, resumoSearchTo].forEach(el=> el.addEventListener('input', renderResumo));
 document.getElementById('resumoClearFiltersBtn').addEventListener('click', ()=>{
-  resumoSearchPlaca.value=''; resumoSearchFrom.value=''; resumoSearchTo.value='';
+  resumoSearchPlaca.value=''; resumoSearchMotorista.value=''; resumoSearchAutorizado.value='';
+  resumoSearchFrom.value=''; resumoSearchTo.value='';
   renderResumo();
 });
 document.getElementById('resumoRefreshBtn').addEventListener('click', loadAndRenderResumo);
