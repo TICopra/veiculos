@@ -482,6 +482,7 @@
     <nav class="tabs">
       <button id="tabCapturaBtn" class="active">Registrar</button>
       <button id="tabBuscaBtn">Consultar</button>
+      <button id="tabResumoBtn">Resumo de entradas e saídas</button>
       <button id="tabUsuariosBtn" style="display:none;">Usuários</button>
       <button id="tabVeiculosBtn" style="display:none;">Veículos</button>
     </nav>
@@ -541,6 +542,11 @@
               </div>
             </div>
 
+                        <div id="statusPreviewBlock" style="display:none;align-items:center;gap:10px;">
+              <span style="font-size:13px;color:var(--slate-soft);">Este registro será marcado como:</span>
+              <span id="statusPreviewBadge" class="status-badge"></span>
+            </div>
+
             <div id="motoristaEncontrado" style="display:none;background:var(--signal-green-bg);border-radius:10px;padding:12px 14px;">
               <div style="font-size:12px;font-weight:700;color:var(--signal-green);text-transform:uppercase;letter-spacing:0.5px;">Veículo cadastrado</div>
               <div style="font-size:15px;font-weight:700;margin-top:2px;" id="motoristaEncontradoNome"></div>
@@ -556,6 +562,10 @@
               <div>
                 <label class="field-label" for="motoristaEmpresaInput">Empresa</label>
                 <input type="text" id="motoristaEmpresaInput" placeholder="Empresa em que trabalha">
+              </div>
+              <div>
+                <label class="field-label" for="autorizadoPorInput">Autorizado por</label>
+                <input type="text" id="autorizadoPorInput" placeholder="Nome de quem autorizou a entrada">
               </div>
             </div>
 
@@ -611,6 +621,7 @@
               <th>Placa</th>
               <th>Motorista</th>
               <th>Empresa</th>
+              <th>Autorizado por</th>
               <th>Observação</th>
               <th>Foto</th>
               <th id="acoesHeader"></th>
@@ -621,6 +632,49 @@
         <div class="empty-state" id="emptyState" style="display:none;">
           <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11"/></svg>
           <div>Nenhum registro encontrado.<br>Registre uma placa na aba "Registrar".</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW: RESUMO DE ENTRADAS E SAÍDAS (visível para todos os perfis) -->
+    <section id="viewResumo" class="view">
+      <div class="filters">
+        <div class="f-item">
+          <label class="field-label" for="resumoSearchPlaca">Buscar placa</label>
+          <input type="search" id="resumoSearchPlaca" placeholder="Ex: ABC1D23">
+        </div>
+        <div class="f-item">
+          <label class="field-label" for="resumoSearchFrom">De</label>
+          <input type="date" id="resumoSearchFrom">
+        </div>
+        <div class="f-item">
+          <label class="field-label" for="resumoSearchTo">Até</label>
+          <input type="date" id="resumoSearchTo">
+        </div>
+        <button class="btn btn-ghost btn-small" id="resumoClearFiltersBtn">Limpar</button>
+        <button class="btn btn-ghost btn-small" id="resumoRefreshBtn">↻ Atualizar</button>
+      </div>
+
+      <div class="count-pill" id="resumoCountPill"></div>
+
+      <div class="table-wrap card" style="padding:0;">
+        <table>
+          <thead>
+            <tr>
+              <th>Placa</th>
+              <th>Motorista</th>
+              <th>Empresa</th>
+              <th>Entrada</th>
+              <th>Saída</th>
+              <th>Permanência</th>
+              <th>Foto</th>
+            </tr>
+          </thead>
+          <tbody id="resumoBody"></tbody>
+        </table>
+        <div class="empty-state" id="resumoEmptyState" style="display:none;">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11"/></svg>
+          <div>Nenhuma movimentação encontrada.</div>
         </div>
       </div>
     </section>
@@ -1062,28 +1116,34 @@ function showApp(){
 // ---------- Tabs ----------
 const tabCapturaBtn = document.getElementById('tabCapturaBtn');
 const tabBuscaBtn = document.getElementById('tabBuscaBtn');
+const tabResumoBtn = document.getElementById('tabResumoBtn');
 const tabUsuariosBtn = document.getElementById('tabUsuariosBtn');
 const tabVeiculosBtn = document.getElementById('tabVeiculosBtn');
 const viewCaptura = document.getElementById('viewCaptura');
 const viewBusca = document.getElementById('viewBusca');
+const viewResumo = document.getElementById('viewResumo');
 const viewUsuarios = document.getElementById('viewUsuarios');
 const viewVeiculos = document.getElementById('viewVeiculos');
 
 tabCapturaBtn.addEventListener('click', ()=>switchTab('captura'));
 tabBuscaBtn.addEventListener('click', ()=>switchTab('busca'));
+tabResumoBtn.addEventListener('click', ()=>switchTab('resumo'));
 tabUsuariosBtn.addEventListener('click', ()=>switchTab('usuarios'));
 tabVeiculosBtn.addEventListener('click', ()=>switchTab('veiculos'));
 
 function switchTab(tab){
   tabCapturaBtn.classList.toggle('active', tab==='captura');
   tabBuscaBtn.classList.toggle('active', tab==='busca');
+  tabResumoBtn.classList.toggle('active', tab==='resumo');
   tabUsuariosBtn.classList.toggle('active', tab==='usuarios');
   tabVeiculosBtn.classList.toggle('active', tab==='veiculos');
   viewCaptura.classList.toggle('active', tab==='captura');
   viewBusca.classList.toggle('active', tab==='busca');
+  viewResumo.classList.toggle('active', tab==='resumo');
   viewUsuarios.classList.toggle('active', tab==='usuarios');
   viewVeiculos.classList.toggle('active', tab==='veiculos');
   if(tab === 'busca'){ loadAndRenderRecords(); }
+  if(tab === 'resumo'){ loadAndRenderResumo(); }
   if(tab === 'usuarios'){ renderUsersList(); renderAcessos(); }
   if(tab === 'veiculos'){ renderVeiculosList(); }
 }
@@ -1122,7 +1182,34 @@ const motoristaEncontradoEmpresa = document.getElementById('motoristaEncontradoE
 const motoristaNovoBlock = document.getElementById('motoristaNovoBlock');
 const motoristaNomeInput = document.getElementById('motoristaNomeInput');
 const motoristaEmpresaInput = document.getElementById('motoristaEmpresaInput');
+const autorizadoPorInput = document.getElementById('autorizadoPorInput');
+const statusPreviewBlock = document.getElementById('statusPreviewBlock');
+const statusPreviewBadge = document.getElementById('statusPreviewBadge');
 let matchedVeiculo = null;
+
+// Descobre qual foi o último status registrado para essa placa, e decide
+// qual é o próximo: sem histórico ou último "Saida" -> "Entrada"; último "Entrada" -> "Saida".
+async function proximoStatusParaPlaca(placa){
+  const placaLimpa = (placa || '').trim().toUpperCase();
+  if(!placaLimpa) return 'Entrada';
+
+  const { data, error } = await sb.from('registros')
+    .select('status')
+    .eq('placa', placaLimpa)
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  if(error){ console.error(error); return 'Entrada'; }
+  const ultimo = (data && data[0]) ? data[0].status : null;
+  return ultimo === 'Entrada' ? 'Saida' : 'Entrada';
+}
+
+function renderStatusBadge(status){
+  if(!status){ statusPreviewBlock.style.display = 'none'; return; }
+  statusPreviewBlock.style.display = 'flex';
+  statusPreviewBadge.textContent = status === 'Entrada' ? 'Entrada' : 'Saída';
+  statusPreviewBadge.className = 'status-badge ' + (status === 'Entrada' ? 'status-alta' : 'status-baixa');
+}
 
 async function checkVeiculoCadastrado(placa){
   const placaLimpa = (placa || '').trim().toUpperCase();
@@ -1130,6 +1217,7 @@ async function checkVeiculoCadastrado(placa){
     matchedVeiculo = null;
     motoristaEncontrado.style.display = 'none';
     motoristaNovoBlock.style.display = 'none';
+    renderStatusBadge(null);
     return;
   }
   const { data, error } = await sb.from('veiculos').select('*').eq('placa', placaLimpa).maybeSingle();
@@ -1146,8 +1234,13 @@ async function checkVeiculoCadastrado(placa){
     motoristaNovoBlock.style.display = 'flex';
     motoristaNomeInput.value = '';
     motoristaEmpresaInput.value = '';
+    autorizadoPorInput.value = '';
   }
+
+  const proximoStatus = await proximoStatusParaPlaca(placaLimpa);
+  renderStatusBadge(proximoStatus);
 }
+
 
 fileInput.addEventListener('change', async (e)=>{
   const file = e.target.files[0];
@@ -1283,6 +1376,8 @@ function resetCaptureForm(){
   motoristaNovoBlock.style.display = 'none';
   motoristaNomeInput.value = '';
   motoristaEmpresaInput.value = '';
+  autorizadoPorInput.value = '';
+  renderStatusBadge(null);
 }
 
 document.getElementById('saveBtn').addEventListener('click', async ()=>{
@@ -1294,15 +1389,17 @@ document.getElementById('saveBtn').addEventListener('click', async ()=>{
   if(!placa){ toast('Digite a placa antes de salvar.', 'error'); return; }
   if(!capturedPhotoForStorage){ toast('Nenhuma foto capturada.', 'error'); return; }
 
-  let motoristaNome, motoristaEmpresa;
+  let motoristaNome, motoristaEmpresa, autorizadoPor;
   if(matchedVeiculo){
     motoristaNome = matchedVeiculo.nome;
     motoristaEmpresa = matchedVeiculo.empresa;
+    autorizadoPor = null;
   } else {
     motoristaNome = motoristaNomeInput.value.trim();
     motoristaEmpresa = motoristaEmpresaInput.value.trim();
-    if(!motoristaNome || !motoristaEmpresa){
-      toast('Informe o nome do motorista e a empresa antes de salvar.', 'error');
+    autorizadoPor = autorizadoPorInput.value.trim();
+    if(!motoristaNome || !motoristaEmpresa || !autorizadoPor){
+      toast('Informe nome do motorista, empresa e quem autorizou antes de salvar.', 'error');
       return;
     }
   }
@@ -1319,12 +1416,18 @@ document.getElementById('saveBtn').addEventListener('click', async ()=>{
     const { error: uploadError } = await sb.storage.from(FOTOS_BUCKET).upload(path, blob, { contentType: 'image/jpeg' });
     if(uploadError) throw uploadError;
 
+    // confere de novo (fresquinho) qual é o status certo, pra evitar erro
+    // se alguém salvou outro registro dessa placa nos últimos segundos
+    const statusFinal = await proximoStatusParaPlaca(placa);
+
     const { error: insertError } = await sb.from('registros').insert({
       data_registro: date,
       hora_registro: time,
       placa, observacao: obs,
       motorista_nome: motoristaNome,
       motorista_empresa: motoristaEmpresa,
+      autorizado_por: autorizadoPor,
+      status: statusFinal,
       foto_path: path,
       registrado_por: currentUser.id
     });
@@ -1351,7 +1454,9 @@ const searchTo = document.getElementById('searchTo');
 
 async function loadAndRenderRecords(){
   countPill.textContent = 'Carregando...';
-  const { data, error } = await sb.from('registros').select('*').order('created_at', { ascending: false });
+  // A aba Consultar mostra só as entradas. Para o histórico completo com
+  // entrada + saída e tempo de permanência, veja a aba "Resumo".
+  const { data, error } = await sb.from('registros').select('*').eq('status', 'Entrada').order('created_at', { ascending: false });
   if(error){ console.error(error); toast('Erro ao carregar os registros.', 'error'); allRecords = []; renderTable(); return; }
 
   allRecords = data || [];
@@ -1397,6 +1502,7 @@ function renderTable(){
       </td>
       <td>${escapeHtml(r.motorista_nome||'—')}</td>
       <td>${escapeHtml(r.motorista_empresa||'—')}</td>
+      <td>${escapeHtml(r.autorizado_por||'—')}</td>
       <td><span class="obs-text">${escapeHtml(r.observacao||'—')}</span></td>
       <td>${r.photoUrl ? `<img class="thumb" src="${r.photoUrl}" data-id="${r.id}">` : '—'}</td>
       <td>${isAdmin ? `<button class="btn-danger-text" data-del="${r.id}">Excluir</button>` : ''}</td>
@@ -1471,12 +1577,13 @@ document.getElementById('exportCsvBtn').addEventListener('click', ()=>{
     toast('Apenas administradores podem exportar os dados.', 'error');
     return;
   }
-  let csv = 'Data;Hora;Placa;Motorista;Empresa;Observacao\r\n';
+  let csv = 'Data;Hora;Placa;Motorista;Empresa;AutorizadoPor;Observacao\r\n';
   allRecords.forEach(r=>{
     const obsClean = (r.observacao||'').replace(/;/g,',');
     const nomeClean = (r.motorista_nome||'').replace(/;/g,',');
     const empresaClean = (r.motorista_empresa||'').replace(/;/g,',');
-    csv += `${formatDateBR(r.data_registro)};${(r.hora_registro||'').slice(0,5)};${r.placa};${nomeClean};${empresaClean};${obsClean}\r\n`;
+    const autorizadoClean = (r.autorizado_por||'').replace(/;/g,',');
+    csv += `${formatDateBR(r.data_registro)};${(r.hora_registro||'').slice(0,5)};${r.placa};${nomeClean};${empresaClean};${autorizadoClean};${obsClean}\r\n`;
   });
   downloadBlob('\ufeff'+csv, `registros-veiculos-${todayISO()}.csv`, 'text/csv;charset=utf-8');
   toast('CSV exportado.', 'success');
@@ -1491,7 +1598,8 @@ document.getElementById('exportJsonBtn').addEventListener('click', ()=>{
   // backup aqui traz os dados e o caminho de cada foto (não a foto embutida).
   const rows = allRecords.map(r => ({
     id: r.id, data: r.data_registro, hora: r.hora_registro,
-    placa: r.placa, motorista_nome: r.motorista_nome, motorista_empresa: r.motorista_empresa,
+    placa: r.placa, status: r.status, motorista_nome: r.motorista_nome, motorista_empresa: r.motorista_empresa,
+    autorizado_por: r.autorizado_por,
     observacao: r.observacao, foto_path: r.foto_path,
     registrado_por: r.registrado_por, criado_em: r.created_at
   }));
@@ -1730,6 +1838,146 @@ async function renderAcessos(){
     body.appendChild(tr);
   });
 }
+
+// ---------- Resumo de entradas e saídas ----------
+const resumoBody = document.getElementById('resumoBody');
+const resumoEmptyState = document.getElementById('resumoEmptyState');
+const resumoCountPill = document.getElementById('resumoCountPill');
+const resumoSearchPlaca = document.getElementById('resumoSearchPlaca');
+const resumoSearchFrom = document.getElementById('resumoSearchFrom');
+const resumoSearchTo = document.getElementById('resumoSearchTo');
+let allVisitas = [];
+
+function combinarDataHora(data, hora){
+  if(!data || !hora) return null;
+  return new Date(`${data}T${hora}`);
+}
+
+function formatarPermanencia(ms){
+  if(ms == null || ms < 0) return '—';
+  const totalMin = Math.round(ms / 60000);
+  const dias = Math.floor(totalMin / 1440);
+  const horas = Math.floor((totalMin % 1440) / 60);
+  const min = totalMin % 60;
+  let partes = [];
+  if(dias > 0) partes.push(`${dias}d`);
+  if(horas > 0) partes.push(`${horas}h`);
+  if(min > 0 || partes.length === 0) partes.push(`${min}min`);
+  return partes.join(' ');
+}
+
+async function loadAndRenderResumo(){
+  resumoCountPill.textContent = 'Carregando...';
+  const { data, error } = await sb.from('registros').select('*').order('created_at', { ascending: true });
+  if(error){ console.error(error); toast('Erro ao carregar o resumo.', 'error'); allVisitas = []; renderResumo(); return; }
+
+  const registros = data || [];
+
+  // gera link temporário para as fotos de entrada
+  await Promise.all(registros.map(async (r)=>{
+    if(!r.foto_path){ r.photoUrl = ''; return; }
+    const { data: signed, error: signErr } = await sb.storage.from(FOTOS_BUCKET).createSignedUrl(r.foto_path, 3600);
+    r.photoUrl = (!signErr && signed) ? signed.signedUrl : '';
+  }));
+
+  // agrupa por placa e pareia Entrada -> Saída na ordem em que aconteceram
+  const porPlaca = {};
+  registros.forEach(r=>{
+    if(!porPlaca[r.placa]) porPlaca[r.placa] = [];
+    porPlaca[r.placa].push(r);
+  });
+
+  const visitas = [];
+  Object.keys(porPlaca).forEach(placa=>{
+    const lista = porPlaca[placa];
+    let i = 0;
+    while(i < lista.length){
+      const atual = lista[i];
+      if(atual.status === 'Entrada'){
+        const proximo = lista[i+1];
+        const temSaida = proximo && proximo.status === 'Saida';
+        const entradaTs = combinarDataHora(atual.data_registro, atual.hora_registro);
+        const saidaTs = temSaida ? combinarDataHora(proximo.data_registro, proximo.hora_registro) : null;
+        visitas.push({
+          placa: atual.placa,
+          motorista_nome: atual.motorista_nome,
+          motorista_empresa: atual.motorista_empresa,
+          entrada: atual,
+          saida: temSaida ? proximo : null,
+          permanenciaMs: saidaTs ? (saidaTs - entradaTs) : null,
+          emAndamento: !temSaida
+        });
+        i += temSaida ? 2 : 1;
+      } else {
+        // "Saida" sem uma "Entrada" correspondente antes (não deveria acontecer, mas por segurança)
+        i += 1;
+      }
+    }
+  });
+
+  // mais recentes primeiro
+  visitas.sort((a,b)=> new Date(b.entrada.created_at) - new Date(a.entrada.created_at));
+  allVisitas = visitas;
+  renderResumo();
+}
+
+function renderResumo(){
+  const q = resumoSearchPlaca.value.trim().toUpperCase().replace(/[\s-]/g,'');
+  const from = resumoSearchFrom.value;
+  const to = resumoSearchTo.value;
+
+  const filtered = allVisitas.filter(v=>{
+    if(q && !v.placa.replace(/[\s-]/g,'').includes(q)) return false;
+    if(from && v.entrada.data_registro < from) return false;
+    if(to && v.entrada.data_registro > to) return false;
+    return true;
+  });
+
+  resumoCountPill.textContent = `${filtered.length} movimenta${filtered.length===1?'ção':'ções'} encontrada${filtered.length===1?'':'s'}`;
+  resumoBody.innerHTML = '';
+  resumoEmptyState.style.display = filtered.length ? 'none' : 'block';
+
+  filtered.forEach(v=>{
+    const tr = document.createElement('tr');
+    const entradaTxt = `${formatDateBR(v.entrada.data_registro)} ${(v.entrada.hora_registro||'').slice(0,5)}`;
+    const saidaTxt = v.saida ? `${formatDateBR(v.saida.data_registro)} ${(v.saida.hora_registro||'').slice(0,5)}` : '—';
+    const permanenciaTxt = v.emAndamento
+      ? '<span class="status-badge status-alta">No local</span>'
+      : formatarPermanencia(v.permanenciaMs);
+
+    tr.innerHTML = `
+      <td>
+        <div class="plate-chip plate-chip-sm">
+          <div class="plate-badge"><span class="flag">🇧🇷</span>BR</div>
+          <div class="plate-text">${v.placa}</div>
+        </div>
+      </td>
+      <td>${escapeHtml(v.motorista_nome||'—')}</td>
+      <td>${escapeHtml(v.motorista_empresa||'—')}</td>
+      <td>${entradaTxt}</td>
+      <td>${saidaTxt}</td>
+      <td>${permanenciaTxt}</td>
+      <td>${v.entrada.photoUrl ? `<img class="thumb" src="${v.entrada.photoUrl}" data-id="${v.entrada.id}">` : '—'}</td>
+    `;
+    resumoBody.appendChild(tr);
+  });
+
+  resumoBody.querySelectorAll('img.thumb').forEach(img=>{
+    img.addEventListener('click', ()=>{
+      modalImg.src = img.src;
+      modalPlateText.textContent = '';
+      modalObs.textContent = '';
+      modalOverlay.classList.add('active');
+    });
+  });
+}
+
+[resumoSearchPlaca, resumoSearchFrom, resumoSearchTo].forEach(el=> el.addEventListener('input', renderResumo));
+document.getElementById('resumoClearFiltersBtn').addEventListener('click', ()=>{
+  resumoSearchPlaca.value=''; resumoSearchFrom.value=''; resumoSearchTo.value='';
+  renderResumo();
+});
+document.getElementById('resumoRefreshBtn').addEventListener('click', loadAndRenderResumo);
 
 // ---------- Veículos (cadastro) ----------
 let allVeiculos = [];
